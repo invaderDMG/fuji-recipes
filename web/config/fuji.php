@@ -35,6 +35,47 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Similitud
+    |--------------------------------------------------------------------------
+    |
+    | Penalizaciones y pesos de RecipeSimilarity, portados de fxw_mine.py.
+    | Si un campo falta en una sola de las dos recetas, suma peso × missing_factor.
+    |
+    */
+
+    'similarity' => [
+        'simulation' => [
+            'same_family' => 2.0,
+            'different' => 6.0,
+        ],
+        'white_balance' => [
+            'missing' => 0.5,
+            'kelvin_step' => 500,
+            'kelvin_max' => 3.0,
+            'both_auto' => 0.5,
+            'different' => 1.5,
+        ],
+        'missing_factor' => 0.5,
+        // Peso por unidad de diferencia
+        'weights' => [
+            'highlight' => 1.0,
+            'shadow' => 1.0,
+            'color' => 1.0,
+            'clarity' => 0.4,
+            'sharpness' => 0.2,
+            'high_iso_nr' => 0.1,
+            'wb_shift_red' => 0.5,
+            'wb_shift_blue' => 0.5,
+            'dynamic_range' => 0.75,
+            'grain_roughness' => 0.3,
+            'grain_size' => 0.2,
+            'color_chrome_effect' => 0.5,
+            'color_chrome_fx_blue' => 0.5,
+        ],
+    ],
+
     'backups' => [
         'path' => storage_path('app/backups'),
         'keep' => 10,
