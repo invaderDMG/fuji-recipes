@@ -126,6 +126,12 @@ class RecipeForm
                             ->relationship('sensors', 'label')
                             ->multiple()
                             ->preload(),
+                        Select::make('tags')
+                            ->label('Etiquetas')
+                            ->relationship('tags', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->createOptionForm([TextInput::make('name')->label('Nombre')->required()->unique('tags', 'name')]),
                         Toggle::make('is_favorite')
                             ->label('Favorita'),
                         Select::make('rating')

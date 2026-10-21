@@ -11,6 +11,7 @@ use Database\Factories\RecipeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Recipe extends Model
@@ -151,6 +152,28 @@ class Recipe extends Model
         if ($dirty !== []) {
             $this->locked_fields = array_values(array_unique([...$this->locked_fields ?? [], ...$dirty]));
         }
+    }
+
+    /**
+     * Copia la receta como receta propia (source = manual) para crear variantes:
+     * mismos ajustes, sensores y etiquetas, sin datos de importación.
+     */
+    public function duplicateAsManual(): self
+    {
+        return DB::transaction(function () {
+            $copy = $this->replicate(['slug', 'source_url', 'block_index', 'raw_json', 'locked_fields',
+                'needs_review', 'missing_from_source_at', 'imported_at', 'tested_at', 'rating', 'is_favorite']);
+            $copy->fill([
+                'name' => "{$this->name} (copia)",
+                'source' => RecipeSource::Manual,
+                'notes' => trim(($this->notes ? "{$this->notes}\n\n" : '')."Variante de «{$this->name}» (#{$this->id})."),
+            ]);
+            $copy->save();
+            $copy->sensors()->sync($this->sensors->mapWithKeys(fn (Sensor $s) => [$s->id => ['index_label' => $s->pivot->index_label]]));
+            $copy->tags()->sync($this->tags->modelKeys());
+
+            return $copy;
+        });
     }
 
     /**

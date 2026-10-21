@@ -6,14 +6,21 @@ use App\Enums\DynamicRange;
 use App\Enums\EffectLevel;
 use App\Enums\FilmSimulation;
 use App\Enums\RecipeSource;
+use App\Filament\Pages\CompareRecipes;
 use App\Models\Recipe;
+use App\Models\RecipeCollection;
+use App\Models\Tag;
 use App\Support\RecipeFields;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -23,6 +30,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
+use Livewire\Component;
 
 class RecipesTable
 {
@@ -166,6 +176,63 @@ class RecipesTable
                 EditAction::make(),
             ])
             ->toolbarActions([
+                BulkAction::make('compare')
+                    ->label('Comparar')
+                    ->icon(Heroicon::ArrowsRightLeft)
+                    ->color('gray')
+                    ->action(function (Collection $records, Component $livewire) {
+                        if ($records->count() < CompareRecipes::MIN || $records->count() > CompareRecipes::MAX) {
+                            Notification::make()->danger()->title('Selecciona de 2 a 4 recetas para comparar.')->send();
+
+                            return;
+                        }
+
+                        $livewire->redirect(CompareRecipes::urlFor($records->sortBy('id')->modelKeys()));
+                    }),
+                BulkAction::make('addToCollection')
+                    ->label('Añadir a colección')
+                    ->icon(Heroicon::RectangleStack)
+                    ->color('gray')
+                    ->schema([
+                        Select::make('collection_id')
+                            ->label('Colección')
+                            ->options(fn () => RecipeCollection::orderBy('name')->pluck('name', 'id'))
+                            ->required()
+                            ->createOptionForm([TextInput::make('name')->label('Nombre')->required()])
+                            ->createOptionUsing(fn (array $data) => RecipeCollection::create($data)->getKey()),
+                    ])
+                    ->action(function (Collection $records, array $data) {
+                        $collection = RecipeCollection::findOrFail($data['collection_id']);
+
+                        try {
+                            $added = $collection->appendRecipes($records->modelKeys());
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title('No se han añadido')->body($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title("Añadidas {$added} recetas a «{$collection->name}»")->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('tag')
+                    ->label('Etiquetar')
+                    ->icon(Heroicon::Tag)
+                    ->color('gray')
+                    ->schema([
+                        Select::make('tags')
+                            ->label('Etiquetas')
+                            ->multiple()
+                            ->options(fn () => Tag::orderBy('name')->pluck('name', 'id'))
+                            ->required()
+                            ->createOptionForm([TextInput::make('name')->label('Nombre')->required()->unique(Tag::class, 'name')])
+                            ->createOptionUsing(fn (array $data) => Tag::create($data)->getKey()),
+                    ])
+                    ->action(function (Collection $records, array $data) {
+                        $records->each(fn (Recipe $recipe) => $recipe->tags()->syncWithoutDetaching($data['tags']));
+                        Notification::make()->success()->title('Etiquetas añadidas a '.$records->count().' recetas')->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

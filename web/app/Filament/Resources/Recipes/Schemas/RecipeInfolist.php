@@ -4,12 +4,14 @@ namespace App\Filament\Resources\Recipes\Schemas;
 
 use App\Models\Recipe;
 use App\Support\RecipeFields;
+use App\Support\RecipeText;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
 
@@ -84,6 +86,20 @@ class RecipeInfolist
                                     ->placeholder('—'),
                                 TextEntry::make('tested_at')->label('Probada')->date()->placeholder('—'),
                                 TextEntry::make('notes')->label('Notas')->placeholder('—')->prose(),
+                            ]),
+                        Section::make('Como texto')
+                            ->description('Formato «Clave: valor» de fxw_import.py.')
+                            ->collapsed()
+                            ->schema([
+                                TextEntry::make('as_text')
+                                    ->hiddenLabel()
+                                    ->state(fn (Recipe $record) => RecipeText::make($record))
+                                    ->formatStateUsing(fn (string $state) => nl2br(e($state)))
+                                    ->html()
+                                    ->fontFamily(FontFamily::Mono)
+                                    ->copyable()
+                                    ->copyableState(fn (Recipe $record) => RecipeText::make($record))
+                                    ->copyMessage('Copiado'),
                             ]),
                         Section::make('Importación')
                             ->collapsed()
