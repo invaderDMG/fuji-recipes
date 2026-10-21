@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Lee una receta de una captura (OCR con Vision de macOS) o de un fichero de texto y la
+Lee una receta de una captura (OCR con Vision en macOS o Tesseract en Linux) o de un fichero de texto y la
 devuelve como JSON. Reutiliza el lector de fxw_import.py sin modificarlo.
 
 Uso: recipe_from_capture.py <carpeta con fxw_import.py> <imagen o .txt>

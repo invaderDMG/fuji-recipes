@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * Usuario único de la app local (Filament necesita uno). Idempotente.
+ * Usuario único de la app (Filament necesita uno), sin contraseña. Idempotente.
  */
 class LocalUserSeeder extends Seeder
 {
@@ -16,7 +16,6 @@ class LocalUserSeeder extends Seeder
             ['email' => config('fuji.local_user.email')],
             [
                 'name' => 'Local',
-                'password' => config('fuji.local_user.password'),
                 'camera' => config('fuji.default_camera'),
                 'camera_sensor' => config('fuji.default_sensor'),
             ],

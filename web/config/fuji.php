@@ -33,8 +33,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | El OCR y el lector de recetas son los de fxw_import.py: la app los llama
-    | con el Python del entorno virtual del proyecto (necesita
-    | pyobjc-framework-Vision: make setup-python).
+    | con el Python del entorno virtual del proyecto. En macOS usa Vision
+    | (pyobjc-framework-Vision: make setup-python); en Linux, Tesseract
+    | (apt install tesseract-ocr).
     |
     */
 
@@ -97,18 +98,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Usuario local
+    | Usuario y acceso
     |--------------------------------------------------------------------------
     |
-    | Filament necesita un usuario. LocalUserSeeder lo crea y el middleware
-    | LoginLocalUser inicia sesión con él automáticamente.
+    | Filament necesita un usuario: LocalUserSeeder lo crea, sin contraseña.
+    | En los entornos de auto_login_environments, LoginLocalUser inicia sesión
+    | con él automáticamente. En el resto (producción) se entra con un enlace
+    | de un solo uso que se envía a login_email (App\Auth\MagicLink).
     |
     */
 
     'local_user' => [
         'email' => 'local@fuji-recipes.test',
-        'password' => 'fuji-recipes',
     ],
+
+    'auto_login_environments' => ['local', 'staging', 'testing'],
+
+    'login_email' => env('FUJI_LOGIN_EMAIL'),
+
+    'magic_link_minutes' => 15,
 
     'backups' => [
         'path' => storage_path('app/backups'),

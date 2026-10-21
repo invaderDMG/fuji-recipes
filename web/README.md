@@ -1,6 +1,6 @@
 # Fuji Recipes (web)
 
-Aplicación Laravel local para consultar, filtrar, comparar y editar recetas de
+Aplicación Laravel para consultar, filtrar, comparar y editar recetas de
 simulación de película de Fujifilm. Ver `../PLAN_LARAVEL.md`.
 
 ## Requisitos
@@ -20,6 +20,7 @@ simulación de película de Fujifilm. Ver `../PLAN_LARAVEL.md`.
 | `make test` / `make check` | Tests / Pint + tests |
 | `make migrate` | Copia la BD y aplica migraciones pendientes |
 | `make backup` | Copia la BD a `web/storage/app/backups` |
+| `make deploy` / `make pull` | Push y actualización del droplet / baja su BD y tus fotos (ver «Droplet») |
 
 Opciones: `make scrape SENSOR=x-trans-v` (un solo índice) y
 `make import ONLY=fxw|mine` (un solo origen).
@@ -28,10 +29,21 @@ Usa `make serve` en lugar de `php artisan serve` o `composer run dev`: esos
 arrancan PHP con su límite por defecto de 2 MB por subida y no podrías subir
 tus fotos.
 
-La interfaz es un panel de Filament servido en la raíz. No hay pantalla de
-login: el middleware `LoginLocalUser` inicia sesión con el usuario que crea
-`LocalUserSeeder` (`local@fuji-recipes.test` / `fuji-recipes`, en
-`config/fuji.php`). Sirve solo en 127.0.0.1.
+La interfaz es un panel de Filament servido en la raíz.
+
+## Acceso
+
+No se guardan contraseñas (`users.password` es nulo). Hay un solo usuario,
+`local@fuji-recipes.test`, que crea `LocalUserSeeder`.
+
+- **Local y preproducción** (`APP_ENV=local|staging`, y en los tests): no hay
+  login. `LoginLocalUser` inicia sesión sola.
+- **Producción:** la pantalla de login pide un correo. Si es el de
+  `FUJI_LOGIN_EMAIL`, envía un enlace (`/login/enlace/{token}`) que sirve una
+  vez y caduca a los 15 minutos (`fuji.magic_link_minutes`). La respuesta es
+  la misma con cualquier correo. En la caché solo se guarda el hash del
+  token. La sesión dura lo que diga `SESSION_LIFETIME` (30 días en la
+  plantilla del droplet).
 
 ## Recetas nuevas: scrape incremental
 
@@ -76,6 +88,7 @@ make import-force    # aplicar
 | Variable | Uso |
 |---|---|
 | `FXW_SOURCE_DB` | Ruta absoluta a `fujixweekly.db`. Conexión `fxw_source`, **solo lectura** |
+| `FUJI_LOGIN_EMAIL` | Único correo que recibe el enlace de acceso en producción |
 | `FXW_DEFAULT_CAMERA`, `FXW_DEFAULT_SENSOR` | Cámara y sensor mientras no se elija otra en «Mi cámara» (`X-T30 III`, `x-trans-v`) |
 
 El código lee estos valores con `config('fuji.*')`, nunca con `env()`.
@@ -117,10 +130,13 @@ sensor de tu cámara, los campos dudosos, el texto leído y un aviso si ya
 tienes una receta idéntica (además de las 3 más parecidas). La captura no se
 guarda.
 
-El OCR (Vision de macOS) y el lector son los de `fxw_import.py`, sin
-modificar: la app los llama con `resources/python/recipe_from_capture.py`
-usando `.venv` (`make setup-python` instala `pyobjc-framework-Vision`). Cada
-captura tarda unos 8–10 s. Las capturas de muestra de la raíz (`IMG_*`) se
+El OCR y el lector son los de `fxw_import.py`, sin modificar: la app los
+llama con `resources/python/recipe_from_capture.py` usando `.venv`. En macOS
+el OCR es Vision (`make setup-python` instala `pyobjc-framework-Vision`) y
+tarda unos 8–10 s por captura. En Linux, `fxw_import.py` usa Tesseract
+(`apt install tesseract-ocr`). Con las capturas de muestra lee lo mismo que
+Vision, salvo cuando el texto está encima de la foto: ahí se le escapa algún
+ajuste, que verás vacío o marcado en el formulario. Las capturas de muestra de la raíz (`IMG_*`) se
 usan en los tests de OCR real y no van a git.
 
 ## Fotos
@@ -149,7 +165,7 @@ que una columna nueva.
 
 ## API JSON
 
-Sin autenticación y solo desde 127.0.0.1 (`OnlyLocalhost` devuelve 403 al
+Sin autenticación y solo desde 127.0.0.1 (en el droplet, solo desde el propio droplet) (`OnlyLocalhost` devuelve 403 al
 resto). Los errores siempre van en JSON, aunque el cliente no envíe `Accept`.
 
 | Método | Ruta | Uso |
@@ -193,3 +209,66 @@ req = urllib.request.Request("http://127.0.0.1:8000/api/recipes",
                              headers={"Content-Type": "application/json"})
 print(urllib.request.urlopen(req).status)  # 201; 422 con los errores si algo no valida
 ```
+
+## Droplet (DigitalOcean)
+
+La app vive en el droplet: la BD, las fotos, el scraper y la importación. El
+código va por GitHub (invaderDMG/fuji-recipes): el droplet tiene un clon y `make deploy`
+hace push desde el Mac y pull en el droplet. Si quieres trabajar en local,
+bajas una copia de los datos con `make pull`. Todo con `DROPLET=fuji@tu-dominio`, o
+`export DROPLET=...` en tu shell.
+
+Ficheros en `deploy/`: `provision.sh` (instalación), `nginx.conf`,
+`php-fpm.conf` (pool que corre como el usuario `fuji`, con subidas de 64 MB)
+y `production.env.example`.
+
+### Primera vez
+
+1. Crea un droplet Ubuntu 24.04 con tu clave SSH y apunta un dominio (registro
+   A) a su IP.
+2. Prepara el servidor (PHP 8.4, Nginx, Tesseract, Composer, usuario `fuji`,
+   clon del repo, firewall y HTTPS):
+
+   ```bash
+   ssh root@<ip>
+   curl -fsSLO https://raw.githubusercontent.com/invaderDMG/fuji-recipes/main/deploy/provision.sh
+   DOMAIN=fuji.tudominio.com EMAIL=tu@correo.com bash provision.sh
+   ```
+
+3. Desde el Mac, sube las dos BDs, tus fotos y la caché del scraper (se niega
+   si el droplet ya tiene BD):
+
+   ```bash
+   make push-data DROPLET=fuji@fuji.tudominio.com
+   ```
+
+4. En el droplet, rellena `fuji-recipes/web/.env` (`APP_URL`, correo SMTP y
+   `FUJI_LOGIN_EMAIL`) y ejecuta `cd fuji-recipes && make server-update`.
+
+**Correo:** DigitalOcean bloquea los puertos SMTP 25, 465 y 587, así que
+necesitas un proveedor que acepte el 2525. La plantilla trae Brevo, que es
+gratis hasta 300 correos al día. Para probar el envío:
+`php artisan tinker --execute "app(App\\Auth\\MagicLink::class)->send(config('fuji.login_email'))"`.
+
+### Día a día
+
+| Dónde | Comando | Qué hace |
+|---|---|---|
+| Mac | `make deploy` | `git push` de `main` (con el árbol limpio); el droplet hace `git pull` y `make server-update` |
+| Mac | `make pull` | Copia la BD local y baja la del droplet, `fujixweekly.db` y tus fotos |
+| Droplet | `make update` / `make import-force` | Lo de siempre, ahora en el servidor |
+| Droplet | `make server-update` | `composer install`, copia de la BD, migraciones y cachés |
+
+`deploy` no toca nunca los datos ni el `.env` del droplet: están fuera de git. `pull` sí
+sustituye tu BD local (antes la copia en `storage/app/backups`).
+
+Para que el droplet busque recetas nuevas solo, añade esta línea con
+`crontab -e` como `fuji`:
+
+```
+0 6 * * 1 cd ~/fuji-recipes && make scrape import-force >> web/storage/logs/update.log 2>&1
+```
+
+Copias de seguridad: `recipes:import` y `server-update` copian la BD antes de
+escribir, pero las copias se quedan en el mismo disco. Activa los backups del
+droplet o baja copias con `make pull`.

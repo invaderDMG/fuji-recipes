@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\MagicLinkLogin;
 use App\Http\Middleware\LoginLocalUser;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -27,6 +28,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('')
+            // En local y preproducción no se ve: LoginLocalUser entra solo
+            ->login(MagicLinkLogin::class)
             ->brandName('Fuji Recipes')
             ->colors([
                 'primary' => Color::Amber,
@@ -50,7 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                // App local de un solo usuario: sin pantalla de login
+                // Un solo usuario: en local entra solo, en producción con enlace
                 LoginLocalUser::class,
                 Authenticate::class,
             ]);
