@@ -13,6 +13,7 @@ use App\Models\Recipe;
 use App\Models\Sensor;
 use App\Models\Tag;
 use App\Services\RecipeSimilarity;
+use App\Support\MyCamera;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -45,6 +46,7 @@ class RecipeController extends Controller
             ->when($flag('favorite') !== null, fn (Builder $q) => $q->where('is_favorite', $flag('favorite')))
             ->when($flag('needs_review') !== null, fn (Builder $q) => $q->where('needs_review', $flag('needs_review')))
             ->when($flag('locked') !== null, fn (Builder $q) => $q->withLockedFields($flag('locked')))
+            ->when($flag('compatible') !== null, fn (Builder $q) => $q->compatibleWith(MyCamera::sensorSlug(), $flag('compatible')))
             ->when($flag('missing') !== null, fn (Builder $q) => $flag('missing')
                 ? $q->whereNotNull('missing_from_source_at')
                 : $q->whereNull('missing_from_source_at'));

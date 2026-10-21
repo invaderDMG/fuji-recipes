@@ -247,6 +247,22 @@ class Recipe extends Model
         $query->whereHas('sensors', fn (Builder $q) => $q->whereIn('slug', $slugs));
     }
 
+    /**
+     * Recetas que aparecen (o no) en el índice del sensor dado.
+     */
+    #[Scope]
+    protected function compatibleWith(Builder $query, string $sensor, bool $compatible = true): void
+    {
+        $compatible
+            ? $query->whereHas('sensors', fn (Builder $q) => $q->where('slug', $sensor))
+            : $query->whereDoesntHave('sensors', fn (Builder $q) => $q->where('slug', $sensor));
+    }
+
+    public function isCompatibleWith(string $sensor): bool
+    {
+        return $this->sensors->contains('slug', $sensor);
+    }
+
     #[Scope]
     protected function search(Builder $query, string $term): void
     {

@@ -70,7 +70,7 @@ make import-force    # aplicar
 | Variable | Uso |
 |---|---|
 | `FXW_SOURCE_DB` | Ruta absoluta a `fujixweekly.db`. Conexión `fxw_source`, **solo lectura** |
-| `FXW_DEFAULT_SENSOR` | Sensor de la cámara del usuario (por defecto `x-trans-v`) |
+| `FXW_DEFAULT_CAMERA`, `FXW_DEFAULT_SENSOR` | Cámara y sensor mientras no se elija otra en «Mi cámara» (`X-T30 III`, `x-trans-v`) |
 
 El código lee estos valores con `config('fuji.*')`, nunca con `env()`.
 
@@ -80,6 +80,20 @@ El código lee estos valores con `config('fuji.*')`, nunca con `env()`.
 ./vendor/bin/pint
 php artisan test
 ```
+
+## Mi cámara
+
+En «Mi cámara» (menú lateral) eliges tu modelo; su sensor decide qué recetas
+son **compatibles**: las que Fuji X Weekly publica en el índice de ese sensor.
+
+- El listado abre en la pestaña «Compatibles con mi …», con «Todas» y
+  «No compatibles» al lado, y marca cada receta con un icono de cámara.
+- La ficha avisa si la receta no figura para tu cámara; el comparador tiene
+  una fila «Mi …».
+- Las recetas similares filtran por tu sensor y las recetas nuevas lo traen
+  preseleccionado.
+- API: `GET /api/recipes?compatible=true|false` y el campo
+  `compatible_with_my_camera`.
 
 ## Fotos
 

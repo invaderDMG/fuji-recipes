@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Filament\Resources\Recipes\RecipeResource;
 use App\Models\Recipe;
 use App\Services\RecipeSimilarity;
+use App\Support\MyCamera;
 use App\Support\RecipeFields;
 use BackedEnum;
 use Filament\Infolists\Components\TextEntry;
@@ -146,8 +147,9 @@ class CompareRecipes extends Page implements HasTable
             'iso_raw' => fn (Recipe $r) => $r->iso_raw,
             'exposure_compensation' => fn (Recipe $r) => $r->exposure_compensation,
             'sensors' => fn (Recipe $r) => $r->sensors->pluck('label')->implode(', ') ?: null,
+            'my_camera' => fn (Recipe $r) => $r->isCompatibleWith(MyCamera::sensorSlug()) ? '✓ Compatible' : 'No figura',
         ];
-        $labels = ['grain_roughness' => 'Grain Effect', 'sensors' => 'Sensores'];
+        $labels = ['grain_roughness' => 'Grain Effect', 'sensors' => 'Sensores', 'my_camera' => 'Mi '.MyCamera::camera()];
 
         $rows = [];
         foreach ($settings as $field => $value) {

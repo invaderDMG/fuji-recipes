@@ -7,6 +7,7 @@ use App\Models\Recipe;
 use App\Models\Sensor;
 use App\Services\RecipeSimilarity;
 use App\Services\SimilarityResult;
+use App\Support\MyCamera;
 use App\Support\RecipeFields;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
@@ -62,7 +63,7 @@ class SimilarRecipes extends TableWidget
                 SelectFilter::make('sensor')
                     ->label('Sensor')
                     ->options(fn () => Sensor::orderBy('id')->pluck('label', 'slug'))
-                    ->default(config('fuji.default_sensor')),
+                    ->default(fn () => MyCamera::sensorSlug()),
                 Filter::make('same_simulation')
                     ->label('Misma simulación')
                     ->toggle(),

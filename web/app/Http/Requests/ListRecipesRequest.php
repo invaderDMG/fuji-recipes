@@ -49,6 +49,7 @@ class ListRecipesRequest extends FormRequest
             'needs_review' => ['boolean'],
             'locked' => ['boolean'],
             'missing' => ['boolean'],
+            'compatible' => ['boolean'],
             'sort' => [Rule::in(self::SORTS)],
             'per_page' => ['integer', 'min:1', 'max:100'],
             'page' => ['integer', 'min:1'],
@@ -66,6 +67,6 @@ class ListRecipesRequest extends FormRequest
             }
         }
 
-        $this->merge(QueryBooleans::normalize($this, ['favorite', 'needs_review', 'locked', 'missing']));
+        $this->merge(QueryBooleans::normalize($this, ['favorite', 'needs_review', 'locked', 'missing', 'compatible']));
     }
 }

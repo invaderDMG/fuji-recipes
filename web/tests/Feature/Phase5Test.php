@@ -55,7 +55,7 @@ describe('comparador', function () {
     it('opens the comparator from the bulk action with 2 to 4 recipes', function () {
         $recipes = Recipe::factory()->count(3)->create();
 
-        Livewire::test(ListRecipes::class)
+        Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
             ->callTableBulkAction('compare', $recipes)
             ->assertRedirect(CompareRecipes::urlFor($recipes->sortBy('id')->modelKeys()));
     });
@@ -63,7 +63,7 @@ describe('comparador', function () {
     it('refuses to compare fewer than 2 or more than 4 recipes', function (int $count) {
         $recipes = Recipe::factory()->count($count)->create();
 
-        Livewire::test(ListRecipes::class)
+        Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
             ->callTableBulkAction('compare', $recipes)
             ->assertNoRedirect()
             ->assertNotified('Selecciona de 2 a 4 recetas para comparar.');
@@ -150,7 +150,7 @@ describe('etiquetas', function () {
         $recipes = Recipe::factory()->count(2)->create();
         $recipes[0]->tags()->attach($existing);
 
-        Livewire::test(ListRecipes::class)
+        Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
             ->callTableBulkAction('tag', $recipes, ['tags' => [$night->id]])
             ->assertHasNoActionErrors();
 
@@ -163,7 +163,7 @@ describe('etiquetas', function () {
         [$tagged, $other] = Recipe::factory()->count(2)->create();
         $tagged->tags()->attach($tag);
 
-        Livewire::test(ListRecipes::class)
+        Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
             ->filterTable('tags', [$tag->id])
             ->assertCanSeeTableRecords([$tagged])
             ->assertCanNotSeeTableRecords([$other]);
@@ -233,7 +233,7 @@ describe('colecciones', function () {
         $collection = RecipeCollection::factory()->create();
         $collection->setRecipes([$recipes[0]->id]);
 
-        Livewire::test(ListRecipes::class)
+        Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
             ->callTableBulkAction('addToCollection', $recipes, ['collection_id' => $collection->id])
             ->assertHasNoActionErrors()
             ->assertNotified("Añadidas 2 recetas a «{$collection->name}»");
@@ -248,7 +248,7 @@ describe('colecciones', function () {
         $collection->setRecipes(Recipe::factory()->count(6)->create()->modelKeys());
         $more = Recipe::factory()->count(2)->create();
 
-        Livewire::test(ListRecipes::class)
+        Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
             ->callTableBulkAction('addToCollection', $more, ['collection_id' => $collection->id])
             ->assertNotified('No se han añadido');
 

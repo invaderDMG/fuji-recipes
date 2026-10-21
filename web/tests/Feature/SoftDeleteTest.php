@@ -17,7 +17,7 @@ beforeEach(function () {
 it('soft deletes recipes from the list and can restore them', function () {
     [$a, $b, $keep] = Recipe::factory()->count(3)->create();
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->callTableBulkAction('delete', [$a, $b])
         ->assertCanNotSeeTableRecords([$a, $b])
         ->assertCanSeeTableRecords([$keep])

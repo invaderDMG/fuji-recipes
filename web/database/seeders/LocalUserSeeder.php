@@ -14,7 +14,12 @@ class LocalUserSeeder extends Seeder
     {
         User::firstOrCreate(
             ['email' => config('fuji.local_user.email')],
-            ['name' => 'Local', 'password' => config('fuji.local_user.password')],
+            [
+                'name' => 'Local',
+                'password' => config('fuji.local_user.password'),
+                'camera' => config('fuji.default_camera'),
+                'camera_sensor' => config('fuji.default_sensor'),
+            ],
         );
     }
 }

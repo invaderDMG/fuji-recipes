@@ -10,6 +10,7 @@ use App\Filament\Pages\CompareRecipes;
 use App\Models\Recipe;
 use App\Models\RecipeCollection;
 use App\Models\Tag;
+use App\Support\MyCamera;
 use App\Support\RecipeFields;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -41,7 +42,10 @@ class RecipesTable
 {
     public static function configure(Table $table): Table
     {
+        $mySensor = MyCamera::sensorSlug();
+
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('sensors'))
             ->columns([
                 ImageColumn::make('image_url')
                     ->label('')
@@ -53,6 +57,17 @@ class RecipesTable
                     ->sortable()
                     ->description(fn (Recipe $record) => $record->author)
                     ->wrap(),
+                IconColumn::make('compatible')
+                    ->label('')
+                    ->state(fn (Recipe $record) => $record->isCompatibleWith($mySensor))
+                    ->boolean()
+                    ->trueIcon('heroicon-s-camera')
+                    ->trueColor('success')
+                    ->falseIcon('heroicon-o-no-symbol')
+                    ->falseColor('gray')
+                    ->tooltip(fn (Recipe $record) => $record->isCompatibleWith($mySensor)
+                        ? 'Compatible con '.MyCamera::label()
+                        : 'No figura para '.MyCamera::label()),
                 TextColumn::make('film_simulation')
                     ->label('Simulación')
                     ->badge()

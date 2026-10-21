@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Filament\Resources\Recipes\RecipeResource as RecipeUi;
 use App\Models\Recipe;
 use App\Models\RecipePhoto;
+use App\Support\MyCamera;
 use App\Support\RecipeText;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -60,6 +61,7 @@ class RecipeResource extends JsonResource
                 'exposure_compensation' => $this->exposure_compensation,
             ],
             'sensors' => $this->whenLoaded('sensors', fn () => $this->sensors->pluck('slug')),
+            'compatible_with_my_camera' => $this->whenLoaded('sensors', fn () => $this->isCompatibleWith(MyCamera::sensorSlug())),
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')),
             'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn (RecipePhoto $p) => [
                 'source' => $p->source,

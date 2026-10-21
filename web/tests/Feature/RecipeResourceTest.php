@@ -23,7 +23,7 @@ beforeEach(function () {
 it('renders the list, view, edit and create pages', function () {
     $recipe = Recipe::factory()->create(['name' => 'Kodak Gold']);
 
-    $this->get('/recipes')->assertOk()->assertSee('Kodak Gold');
+    $this->get('/recipes?tab=all')->assertOk()->assertSee('Kodak Gold');
     $this->get("/recipes/{$recipe->id}")->assertOk()->assertSee('Kodak Gold')->assertSee('Film Simulation');
     $this->get("/recipes/{$recipe->id}/edit")->assertOk();
     $this->get('/recipes/create')->assertOk();
@@ -34,7 +34,7 @@ it('filters by a highlight range', function () {
     $mid = Recipe::factory()->create(['highlight' => 0]);
     $high = Recipe::factory()->create(['highlight' => 2]);
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->filterTable('highlight', ['min' => -1, 'max' => 1])
         ->assertCanSeeTableRecords([$mid])
         ->assertCanNotSeeTableRecords([$low, $high])
@@ -54,7 +54,7 @@ it('finds X-Trans V Classic Negative recipes with highlight ≤ −1', function 
     $tooHigh->sensors()->attach($xtv);
     $otherSensor->sensors()->attach(Sensor::where('slug', 'x-trans-iv')->firstOrFail());
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->filterTable('sensors', [$xtv->id])
         ->filterTable('film_simulation', [FilmSimulation::ClassicNegative->value])
         ->filterTable('highlight', ['max' => -1])
@@ -67,17 +67,17 @@ it('filters by simulation family, review state and locked fields', function () {
     $chrome = Recipe::factory()->create(['film_simulation' => FilmSimulation::ClassicChrome, 'locked_fields' => ['highlight']]);
     $review = Recipe::factory()->needsReview()->create();
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->filterTable('family', ['neg'])
         ->assertCanSeeTableRecords([$neg])
         ->assertCanNotSeeTableRecords([$chrome, $review]);
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->filterTable('needs_review', true)
         ->assertCanSeeTableRecords([$review])
         ->assertCanNotSeeTableRecords([$neg, $chrome]);
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->filterTable('locked', true)
         ->assertCanSeeTableRecords([$chrome])
         ->assertCanNotSeeTableRecords([$neg, $review]);
@@ -87,7 +87,7 @@ it('searches by name, author and notes', function () {
     $byNotes = Recipe::factory()->create(['name' => 'Uno', 'notes' => 'ideal para días nublados']);
     $other = Recipe::factory()->create(['name' => 'Dos', 'notes' => null]);
 
-    Livewire::test(ListRecipes::class)
+    Livewire::withQueryParams(['tab' => 'all'])->test(ListRecipes::class)
         ->searchTable('nublados')
         ->assertCanSeeTableRecords([$byNotes])
         ->assertCanNotSeeTableRecords([$other]);

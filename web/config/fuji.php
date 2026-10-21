@@ -16,12 +16,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Sensor por defecto
+    | Cámara por defecto
     |--------------------------------------------------------------------------
     |
-    | Sensor de la cámara del usuario, usado como filtro por defecto.
+    | Se usan mientras no se configure «Mi cámara» en la app (App\Support\MyCamera).
     |
     */
+
+    'default_camera' => env('FXW_DEFAULT_CAMERA', 'X-T30 III'),
 
     'default_sensor' => env('FXW_DEFAULT_SENSOR', 'x-trans-v'),
 

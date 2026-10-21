@@ -7,6 +7,7 @@ use App\Filament\Resources\Recipes\Widgets\SimilarRecipes;
 use App\Import\RecipeImporter;
 use App\Import\SourceReader;
 use App\Models\Recipe;
+use App\Support\MyCamera;
 use App\Support\RecipeText;
 use DomainException;
 use Filament\Actions\Action;
@@ -82,11 +83,15 @@ class ViewRecipe extends ViewRecord
         ];
     }
 
-    public function getSubheading(): ?string
+    public function getSubheading(): string
     {
-        return $this->record->trashed()
-            ? 'Borrada el '.$this->record->deleted_at->format('d/m/Y').'. La importación no la vuelve a crear; puedes recuperarla.'
-            : null;
+        if ($this->record->trashed()) {
+            return 'Borrada el '.$this->record->deleted_at->format('d/m/Y').'. La importación no la vuelve a crear; puedes recuperarla.';
+        }
+
+        return $this->record->isCompatibleWith(MyCamera::sensorSlug())
+            ? '✓ Compatible con tu '.MyCamera::label()
+            : '⚠ No figura para tu '.MyCamera::label().': puede que le falten o le sobren ajustes.';
     }
 
     protected function getFooterWidgets(): array

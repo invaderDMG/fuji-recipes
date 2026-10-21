@@ -7,6 +7,7 @@ use App\Enums\EffectLevel;
 use App\Enums\FilmSimulation;
 use App\Enums\GrainSize;
 use App\Models\Recipe;
+use App\Support\MyCamera;
 use App\Support\RecipeFields;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
@@ -125,7 +126,9 @@ class RecipeForm
                             ->label('Sensores')
                             ->relationship('sensors', 'label')
                             ->multiple()
-                            ->preload(),
+                            ->preload()
+                            // Las recetas nuevas son, por defecto, para mi cámara
+                            ->default(fn () => array_filter([MyCamera::sensor()?->id])),
                         Select::make('tags')
                             ->label('Etiquetas')
                             ->relationship('tags', 'name')
