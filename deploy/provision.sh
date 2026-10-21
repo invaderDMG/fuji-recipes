@@ -40,7 +40,8 @@ else
     apt-get install -y nginx python3-certbot-nginx ufw
 fi
 
-if ! command -v composer >/dev/null; then
+# También si hay un Composer 1 antiguo: no funciona con PHP 8.4 ni con Packagist
+if ! composer --version 2>/dev/null | grep -q 'Composer version 2'; then
     curl -sS https://getcomposer.org/installer | php8.4 -- --install-dir=/usr/local/bin --filename=composer
 fi
 
