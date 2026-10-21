@@ -15,10 +15,13 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class RecipeForm
 {
@@ -35,6 +38,40 @@ class RecipeForm
         return $schema
             ->columns(3)
             ->components([
+                Callout::make(fn ($livewire) => 'Ya tienes esta receta: '.($livewire->capture['similar'][0]['name'] ?? ''))
+                    ->description('Distancia 0 con una receta existente. Revisa si de verdad quieres crear otra.')
+                    ->warning()
+                    ->columnSpanFull()
+                    ->visible(fn ($livewire) => isset($livewire->capture['similar'][0]) && (float) $livewire->capture['similar'][0]['distance'] === 0.0),
+                Section::make('Leído de la captura')
+                    ->description('Revisa los ajustes antes de guardar: el OCR puede equivocarse.')
+                    ->icon(Heroicon::Photo)
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->columns(3)
+                    ->visible(fn ($livewire) => filled($livewire->capture ?? null))
+                    ->schema([
+                        TextEntry::make('capture_similar')
+                            ->label('Las más parecidas')
+                            ->state(fn ($livewire) => collect($livewire->capture['similar'] ?? [])
+                                ->map(fn (array $r) => "{$r['name']} · {$r['distance']}")->all())
+                            ->listWithLineBreaks()
+                            ->placeholder('—'),
+                        TextEntry::make('capture_issues')
+                            ->label('Campos dudosos')
+                            ->state(fn ($livewire) => $livewire->capture['issues'] ?? [])
+                            ->listWithLineBreaks()
+                            ->color('warning')
+                            ->placeholder('Ninguno'),
+                        TextEntry::make('capture_lines')
+                            ->label('Texto leído')
+                            ->state(fn ($livewire) => $livewire->capture['lines'] ?? [])
+                            ->listWithLineBreaks()
+                            ->limitList(12)
+                            ->expandableLimitedList()
+                            ->size('xs')
+                            ->color('gray'),
+                    ]),
                 Section::make('Ajustes')
                     ->description('En el orden del menú de la cámara. En las recetas importadas, los campos que cambies quedan bloqueados frente a la importación.')
                     ->columnSpan(2)

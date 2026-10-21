@@ -27,7 +27,7 @@ help: ## Muestra esta ayuda
 # ---------------------------------------------------------------- día a día
 
 serve: ## Arranca la app en http://127.0.0.1:8000 (admite fotos de hasta 64 MB)
-	cd $(WEB)/public && php -d upload_max_filesize=64M -d post_max_size=64M \
+	cd $(WEB)/public && php -d upload_max_filesize=64M -d post_max_size=64M -d max_execution_time=120 \
 		-S 127.0.0.1:8000 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php
 
 update: scrape import ## Busca recetas nuevas y muestra el diff (no escribe en la app)
@@ -62,9 +62,9 @@ setup: setup-python ## Primera instalación: dependencias, .env, BD, sensores y 
 	cd $(WEB) && npm install
 	@echo "Revisa FXW_SOURCE_DB en web/.env y ejecuta: make update"
 
-setup-python: ## Crea .venv con las dependencias del scraper
+setup-python: ## Crea .venv con las dependencias del scraper y del OCR de capturas
 	test -x $(PY) || python3 -m venv .venv
-	$(PY) -m pip install --quiet requests beautifulsoup4
+	$(PY) -m pip install --quiet requests beautifulsoup4 pyobjc-framework-Vision
 
 migrate: backup ## Aplica migraciones pendientes (con copia de seguridad antes)
 	$(ARTISAN) migrate

@@ -101,6 +101,20 @@ son **compatibles**: las que Fuji X Weekly publica en el índice de ese sensor.
 - API: `GET /api/recipes?compatible=true|false` y el campo
   `compatible_with_my_camera`.
 
+## Recetas desde captura
+
+En el listado, **«Desde captura»**: subes una captura con la receta escrita
+(o pegas el texto) y se abre el formulario de nueva receta relleno, con el
+sensor de tu cámara, los campos dudosos, el texto leído y un aviso si ya
+tienes una receta idéntica (además de las 3 más parecidas). La captura no se
+guarda.
+
+El OCR (Vision de macOS) y el lector son los de `fxw_import.py`, sin
+modificar: la app los llama con `resources/python/recipe_from_capture.py`
+usando `.venv` (`make setup-python` instala `pyobjc-framework-Vision`). Cada
+captura tarda unos 8–10 s. Las capturas de muestra de la raíz (`IMG_*`) se
+usan en los tests de OCR real y no van a git.
+
 ## Fotos
 
 - **De muestra:** las del post original. Se guarda solo la URL (CDN de

@@ -29,6 +29,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Recetas desde captura (OCR)
+    |--------------------------------------------------------------------------
+    |
+    | El OCR y el lector de recetas son los de fxw_import.py: la app los llama
+    | con el Python del entorno virtual del proyecto (necesita
+    | pyobjc-framework-Vision: make setup-python).
+    |
+    */
+
+    'capture' => [
+        'python' => env('FXW_PYTHON', base_path('../.venv/bin/python')),
+        'scripts_dir' => env('FXW_SCRIPTS_DIR', base_path('..')),
+        'timeout' => 90,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Copias de seguridad
     |--------------------------------------------------------------------------
     |

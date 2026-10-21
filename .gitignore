@@ -2,6 +2,7 @@
 .venv/
 .fxw_cache/
 probe_*/
+/IMG_*
 *.db
 web/vendor
 web/node_modules
