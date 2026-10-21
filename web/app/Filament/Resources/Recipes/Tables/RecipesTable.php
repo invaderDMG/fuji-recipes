@@ -15,6 +15,8 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -28,6 +30,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -167,11 +170,14 @@ class RecipesTable
                 TernaryFilter::make('missing_from_source_at')
                     ->label('Desaparecida del origen')
                     ->nullable(),
+                TrashedFilter::make()
+                    ->label('Borradas'),
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->filtersFormColumns(4)
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                RestoreAction::make(),
             ])
             ->toolbarActions([
                 BulkAction::make('compare')
@@ -232,7 +238,10 @@ class RecipesTable
                     })
                     ->deselectRecordsAfterCompletion(),
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    // Borrado lógico: se conservan y la importación no las vuelve a crear
+                    DeleteBulkAction::make()
+                        ->modalDescription('Las recetas se conservan como borradas (filtro «Borradas») y la importación no las vuelve a crear.'),
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }

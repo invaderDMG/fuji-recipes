@@ -44,6 +44,10 @@ login: el middleware `LoginLocalUser` inicia sesión con el usuario que crea
   quita los bloqueos y recarga la receta.
 - Las recetas que desaparecen del origen no se borran: se marcan con
   `missing_from_source_at`.
+- Borrar una receta en la app es un borrado lógico (`deleted_at`): se conserva
+  (filtro «Borradas», se puede recuperar) y la importación la ignora, así que
+  no se vuelve a crear. Tampoco se inserta por la API si su `source_url` es el
+  de una receta borrada.
 - `needs_review` marca simulaciones sin mapear, ajustes ambiguos y valores
   fuera de rango. El resumen agrupa las simulaciones sin mapear para ampliar
   los alias de `FilmSimulationNormalizer`.

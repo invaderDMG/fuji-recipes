@@ -86,6 +86,10 @@ class ImportRecipes extends Command
         foreach ($report->reappeared as $label) {
             $this->line("<fg=green>↺ {$label}</>");
         }
+
+        foreach ($report->skippedDeleted as $label) {
+            $this->line("<fg=gray>× {$label} (borrada, se ignora)</>");
+        }
     }
 
     private function printSummary(ImportReport $report): void
@@ -98,6 +102,7 @@ class ImportRecipes extends Command
             ['Campos protegidos por bloqueo', $report->lockedFieldCount()],
             ['Desaparecidas del origen', count($report->missing)],
             ['Reaparecidas', count($report->reappeared)],
+            ['Borradas en la app (ignoradas)', count($report->skippedDeleted)],
             ['Pendientes de revisión (needs_review)', $report->needsReview],
         ]);
 

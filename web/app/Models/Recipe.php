@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -20,6 +21,9 @@ class Recipe extends Model
 {
     /** @use HasFactory<RecipeFactory> */
     use HasFactory;
+
+    // Borrado lógico: las recetas borradas se conservan y la importación no las recrea
+    use SoftDeletes;
 
     /**
      * Campos de ajustes de la cámara. Son los que se pueden bloquear
@@ -112,6 +116,7 @@ class Recipe extends Model
             'rating' => 'integer',
             'is_favorite' => 'boolean',
             'tested_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -127,7 +132,7 @@ class Recipe extends Model
         $base = Str::slug($name) ?: 'receta';
         $slug = $base;
 
-        for ($i = 2; static::where('slug', $slug)->exists(); $i++) {
+        for ($i = 2; static::withTrashed()->where('slug', $slug)->exists(); $i++) {
             $slug = "{$base}-{$i}";
         }
 

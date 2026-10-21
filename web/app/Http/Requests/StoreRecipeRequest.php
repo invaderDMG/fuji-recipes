@@ -8,6 +8,7 @@ use App\Enums\FilmSimulation;
 use App\Enums\GrainSize;
 use App\Filament\Resources\Recipes\Schemas\RecipeForm;
 use App\Models\Recipe;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,7 @@ class StoreRecipeRequest extends FormRequest
             'author' => ['nullable', 'string', 'max:255'],
             'published_at' => ['nullable', 'date'],
             'image_url' => ['nullable', 'url', 'max:255'],
-            'source_url' => ['nullable', 'string', 'max:255', Rule::unique('recipes', 'source_url')->where('block_index', 0)],
+            'source_url' => ['nullable', 'string', 'max:255', $this->notExisting(...)],
             'film_simulation' => ['nullable', Rule::enum(FilmSimulation::class)],
             'film_simulation_raw' => ['nullable', 'string', 'max:255'],
             'dynamic_range' => ['nullable', Rule::enum(DynamicRange::class)],
@@ -57,5 +58,19 @@ class StoreRecipeRequest extends FormRequest
         $rules['wb_kelvin'][] = Rule::requiredIf(fn () => $this->input('wb_mode') === 'Kelvin');
 
         return $rules;
+    }
+
+    /**
+     * Una receta borrada (borrado lógico) no se vuelve a insertar.
+     */
+    private function notExisting(string $attribute, mixed $value, Closure $fail): void
+    {
+        $existing = Recipe::withTrashed()->where('source_url', $value)->where('block_index', 0)->first();
+
+        if ($existing !== null) {
+            $fail($existing->trashed()
+                ? "Esa receta está borrada en la app (#{$existing->id}) y no se vuelve a insertar."
+                : "Ya existe una receta con ese source_url (#{$existing->id}).");
+        }
     }
 }

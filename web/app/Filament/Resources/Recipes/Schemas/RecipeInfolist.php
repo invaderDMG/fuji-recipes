@@ -112,6 +112,7 @@ class RecipeInfolist
                                     ->color('warning')
                                     ->placeholder('—'),
                                 TextEntry::make('missing_from_source_at')->label('Desaparecida del origen')->dateTime()->placeholder('—'),
+                                TextEntry::make('deleted_at')->label('Borrada')->dateTime()->placeholder('—')->color('danger'),
                                 TextEntry::make('imported_at')->label('Importada')->dateTime()->placeholder('—'),
                             ]),
                     ]),

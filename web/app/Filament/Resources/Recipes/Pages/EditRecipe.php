@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Recipes\Pages;
 use App\Filament\Resources\Recipes\RecipeResource;
 use App\Models\Recipe;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,9 @@ class EditRecipe extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->modalDescription('La receta se conserva como borrada y la importación no la vuelve a crear.'),
+            RestoreAction::make(),
         ];
     }
 

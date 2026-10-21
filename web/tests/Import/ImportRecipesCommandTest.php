@@ -61,6 +61,7 @@ it('only shows the diff by default and with --dry-run', function (array $options
             ['Campos protegidos por bloqueo', 0],
             ['Desaparecidas del origen', 0],
             ['Reaparecidas', 0],
+            ['Borradas en la app (ignoradas)', 0],
             ['Pendientes de revisión (needs_review)', 0],
         ])
         ->assertSuccessful();
@@ -116,6 +117,7 @@ it('is idempotent', function () {
             ['Campos protegidos por bloqueo', 0],
             ['Desaparecidas del origen', 0],
             ['Reaparecidas', 0],
+            ['Borradas en la app (ignoradas)', 0],
             ['Pendientes de revisión (needs_review)', 0],
         ])
         ->assertSuccessful();
@@ -291,4 +293,50 @@ it('refuses to restore manual recipes or recipes missing from the source', funct
         ->toThrow(DomainException::class, 'Solo se pueden restaurar recetas importadas')
         ->and(fn () => $importer->restore(Recipe::factory()->create()))
         ->toThrow(DomainException::class, 'ya no está en el origen');
+});
+
+it('ignores recipes deleted in the app: never recreates nor updates them', function () {
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+    $gold = Recipe::where('source_url', POST_A)->firstOrFail();
+    $gold->delete();
+    $this->source->update(POST_A, 0, ['highlight' => 3.0]);
+
+    $this->artisan('recipes:import', ['--force' => true])
+        ->expectsOutputToContain('Kodak Gold [https://fujixweekly.com/2024/05/01/kodak-gold/#0] (borrada, se ignora)')
+        ->expectsTable(['Resumen', 'Recetas'], [
+            ['Creadas', 0],
+            ['Actualizadas', 0],
+            ['Sin cambios', 2],
+            ['Campos protegidos por bloqueo', 0],
+            ['Desaparecidas del origen', 0],
+            ['Reaparecidas', 0],
+            ['Borradas en la app (ignoradas)', 1],
+            ['Pendientes de revisión (needs_review)', 0],
+        ])
+        ->assertSuccessful();
+
+    $trashed = Recipe::withTrashed()->where('source_url', POST_A)->get();
+    expect($trashed)->toHaveCount(1)
+        ->and($trashed->first()->trashed())->toBeTrue()
+        ->and($trashed->first()->highlight)->toBe('-1.0')
+        ->and(Recipe::count())->toBe(2);
+});
+
+it('does not mark deleted recipes as missing from the source', function () {
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+    Recipe::where('source_url', POST_A)->firstOrFail()->delete();
+    $this->source->remove(POST_A);
+
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    expect(Recipe::withTrashed()->where('source_url', POST_A)->value('missing_from_source_at'))->toBeNull();
+});
+
+it('refuses to restore source values of a deleted recipe', function () {
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+    $gold = Recipe::where('source_url', POST_A)->firstOrFail();
+    $gold->delete();
+
+    expect(fn () => (new RecipeImporter(SourceReader::fromConfig()))->restore($gold))
+        ->toThrow(DomainException::class, 'está borrada');
 });

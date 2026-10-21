@@ -16,6 +16,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RecipeResource extends Resource
 {
@@ -44,6 +46,14 @@ class RecipeResource extends Resource
     public static function table(Table $table): Table
     {
         return RecipesTable::configure($table);
+    }
+
+    /**
+     * Las recetas borradas (borrado lógico) siguen accesibles por URL para poder recuperarlas.
+     */
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     public static function getRelations(): array

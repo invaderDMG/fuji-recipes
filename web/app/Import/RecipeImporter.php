@@ -31,7 +31,8 @@ final class RecipeImporter
         $report = new ImportReport;
         $sensorsByPost = $this->reader->sensors();
 
-        $existing = Recipe::with('sensors')
+        $existing = Recipe::withTrashed()
+            ->with('sensors')
             ->whereIn('source', $only ? [$only] : [RecipeSource::Fxw, RecipeSource::Mine])
             ->get()
             ->keyBy(fn (Recipe $r) => "{$r->source_url}#{$r->block_index}");
@@ -42,6 +43,13 @@ final class RecipeImporter
         foreach ($this->reader->recipes($only) as $row) {
             $mapped = $this->mapper->map($row, $sensorsByPost[$row->post_url] ?? []);
             $seen[$mapped->key()] = true;
+
+            if ($existing->get($mapped->key())?->trashed()) {
+                $report->skippedDeleted[] = $this->label($existing->get($mapped->key()));
+
+                continue;
+            }
+
             $recipe = $existing[$mapped->key()] ?? new Recipe([
                 'source' => $mapped->source,
                 'source_url' => $mapped->sourceUrl,
@@ -52,7 +60,7 @@ final class RecipeImporter
             $this->apply($recipe, $mapped, $report);
         }
 
-        $missing = $existing->filter(fn (Recipe $r, string $key) => ! isset($seen[$key]) && $r->missing_from_source_at === null);
+        $missing = $existing->filter(fn (Recipe $r, string $key) => ! isset($seen[$key]) && ! $r->trashed() && $r->missing_from_source_at === null);
         foreach ($missing as $recipe) {
             $report->missing[] = $this->label($recipe);
         }
@@ -97,6 +105,10 @@ final class RecipeImporter
     {
         if (! $recipe->source->isImported()) {
             throw new DomainException('Solo se pueden restaurar recetas importadas.');
+        }
+
+        if ($recipe->trashed()) {
+            throw new DomainException('La receta está borrada: recupérala antes de restaurar sus valores de origen.');
         }
 
         $row = $this->reader->find($recipe->source_url, $recipe->block_index)

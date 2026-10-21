@@ -24,6 +24,9 @@ final class ImportReport
     /** @var list<string> */
     public array $reappeared = [];
 
+    /** @var list<string> recetas borradas en la app: se ignoran y no se recrean */
+    public array $skippedDeleted = [];
+
     public int $needsReview = 0;
 
     /** @var array<string, int> "campo: motivo" => recetas */

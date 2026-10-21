@@ -10,7 +10,9 @@ use App\Models\Recipe;
 use App\Support\RecipeText;
 use DomainException;
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
@@ -33,7 +35,11 @@ class ViewRecipe extends ViewRecord
                 ->color('gray')
                 ->url(fn () => $this->record->source_url, shouldOpenInNewTab: true)
                 ->visible(fn () => str_starts_with((string) $this->record->source_url, 'http')),
-            EditAction::make(),
+            EditAction::make()
+                ->hidden(fn () => $this->record->trashed()),
+            RestoreAction::make(),
+            DeleteAction::make()
+                ->modalDescription('La receta se conserva como borrada y la importación no la vuelve a crear.'),
             Action::make('duplicate')
                 ->label('Duplicar como receta propia')
                 ->icon(Heroicon::DocumentDuplicate)
@@ -60,7 +66,7 @@ class ViewRecipe extends ViewRecord
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalDescription('Quita todos los bloqueos y vuelve a cargar esta receta desde fujixweekly.db. Se perderán los cambios hechos a mano en sus campos importados.')
-                ->visible(fn () => $this->record->source->isImported())
+                ->visible(fn () => $this->record->source->isImported() && ! $this->record->trashed())
                 ->action(function () {
                     try {
                         (new RecipeImporter(SourceReader::fromConfig()))->restore($this->record);
@@ -74,6 +80,13 @@ class ViewRecipe extends ViewRecord
                     $this->redirect(RecipeResource::getUrl('view', ['record' => $this->record]));
                 }),
         ];
+    }
+
+    public function getSubheading(): ?string
+    {
+        return $this->record->trashed()
+            ? 'Borrada el '.$this->record->deleted_at->format('d/m/Y').'. La importación no la vuelve a crear; puedes recuperarla.'
+            : null;
     }
 
     protected function getFooterWidgets(): array
