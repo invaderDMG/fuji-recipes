@@ -218,9 +218,13 @@ hace push desde el Mac y pull en el droplet. Si quieres trabajar en local,
 bajas una copia de los datos con `make pull`. Todo con `DROPLET=fuji@tu-dominio`, o
 `export DROPLET=...` en tu shell.
 
-Ficheros en `deploy/`: `provision.sh` (instalación), `nginx.conf`,
-`php-fpm.conf` (pool que corre como el usuario `fuji`, con subidas de 64 MB)
-y `production.env.example`.
+Ficheros en `deploy/`: `provision.sh` (instalación), `php-fpm.conf` (pool
+que corre como el usuario `fuji`, con subidas de 64 MB), `apache.conf` /
+`nginx.conf` y `production.env.example`.
+
+Si el droplet ya sirve otras webs con Apache, `provision.sh` lo detecta: añade
+el vhost `fuji-recipes` y su certificado, y no toca el resto de sitios, su PHP
+ni el firewall. En un droplet vacío instala Nginx y configura ufw.
 
 ### Primera vez
 
