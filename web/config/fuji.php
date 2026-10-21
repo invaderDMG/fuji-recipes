@@ -76,6 +76,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Usuario local
+    |--------------------------------------------------------------------------
+    |
+    | Filament necesita un usuario. LocalUserSeeder lo crea y el middleware
+    | LoginLocalUser inicia sesión con él automáticamente.
+    |
+    */
+
+    'local_user' => [
+        'email' => 'local@fuji-recipes.test',
+        'password' => 'fuji-recipes',
+    ],
+
     'backups' => [
         'path' => storage_path('app/backups'),
         'keep' => 10,

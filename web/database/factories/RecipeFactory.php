@@ -33,7 +33,7 @@ class RecipeFactory extends Factory
             'source_url' => 'https://fujixweekly.com/'.$this->faker->unique()->slug(3).'/',
             'block_index' => 0,
             'author' => 'Ritchie Roesch',
-            'published_at' => $this->faker->dateTimeBetween('-6 years'),
+            'published_at' => $this->faker->dateTimeBetween('-6 years')->format('Y-m-d'),
             'image_url' => null,
             'film_simulation' => $simulation,
             'film_simulation_raw' => $simulation->value,

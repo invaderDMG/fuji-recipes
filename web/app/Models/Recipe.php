@@ -136,6 +136,47 @@ class Recipe extends Model
         return in_array($field, $this->locked_fields ?? [], true);
     }
 
+    /**
+     * Añade a locked_fields los campos modificados a mano, para que la
+     * importación no los sobrescriba. Solo aplica a recetas importadas.
+     */
+    public function lockDirtyFields(): void
+    {
+        if (! $this->source?->isImported()) {
+            return;
+        }
+
+        $dirty = array_intersect(array_keys($this->getDirty()), self::LOCKABLE);
+
+        if ($dirty !== []) {
+            $this->locked_fields = array_values(array_unique([...$this->locked_fields ?? [], ...$dirty]));
+        }
+    }
+
+    /**
+     * WB resumido, p. ej. "Auto +1R −2B" o "5200K 0R −4B".
+     */
+    public function whiteBalanceSummary(): ?string
+    {
+        $mode = $this->wb_mode === 'Kelvin' && $this->wb_kelvin ? "{$this->wb_kelvin}K" : $this->wb_mode;
+
+        if ($mode === null) {
+            return null;
+        }
+
+        $shift = fn (?int $v, string $c) => $v === null ? null : ($v === 0 ? '0' : sprintf('%+d', $v)).$c;
+
+        return str_replace('-', '−', implode(' ', array_filter([$mode, $shift($this->wb_shift_red, 'R'), $shift($this->wb_shift_blue, 'B')])));
+    }
+
+    /**
+     * Grano resumido, p. ej. "Weak, Small".
+     */
+    public function grainSummary(): ?string
+    {
+        return implode(', ', array_filter([$this->grain_roughness?->label(), $this->grain_size?->label()])) ?: null;
+    }
+
     public function sensors(): BelongsToMany
     {
         return $this->belongsToMany(Sensor::class)->withPivot('index_label');

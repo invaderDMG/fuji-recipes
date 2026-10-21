@@ -2,12 +2,16 @@
 
 namespace App\Enums;
 
+use Filament\Support\Colors\Color;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
+
 /**
  * Simulaciones de película. El valor es el nombre canónico que usan los
  * scripts de Python (SIMS en fxw_import.py); label() es el texto del menú
  * de la cámara.
  */
-enum FilmSimulation: string
+enum FilmSimulation: string implements HasColor, HasLabel
 {
     case Provia = 'Provia';
     case Velvia = 'Velvia';
@@ -48,6 +52,21 @@ enum FilmSimulation: string
         };
     }
 
+    public function getLabel(): string
+    {
+        return $this->label();
+    }
+
+    /**
+     * Color del badge según la familia.
+     *
+     * @return array<int|string, string>
+     */
+    public function getColor(): array
+    {
+        return self::familyColor($this->family());
+    }
+
     public function label(): string
     {
         return match ($this) {
@@ -71,6 +90,32 @@ enum FilmSimulation: string
             self::MonochromeR => 'MONOCHROME+R FILTER',
             self::MonochromeG => 'MONOCHROME+G FILTER',
             self::Sepia => 'SEPIA',
+        };
+    }
+
+    public const FAMILIES = [
+        'proneg' => 'PRO Neg / Reala',
+        'neg' => 'Negativo',
+        'chrome' => 'Classic Chrome',
+        'eterna' => 'Eterna',
+        'slide' => 'Diapositiva',
+        'vivid' => 'Velvia',
+        'mono' => 'Monocromo',
+    ];
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function familyColor(string $family): array
+    {
+        return match ($family) {
+            'proneg' => Color::Sky,
+            'neg' => Color::Orange,
+            'chrome' => Color::Teal,
+            'eterna' => Color::Emerald,
+            'slide' => Color::Blue,
+            'vivid' => Color::Rose,
+            default => Color::Zinc,
         };
     }
 

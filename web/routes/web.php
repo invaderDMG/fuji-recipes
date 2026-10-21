@@ -1,7 +1,3 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return view('welcome');
-});
+// La interfaz es el panel de Filament, servido en la raíz (ver AdminPanelProvider).

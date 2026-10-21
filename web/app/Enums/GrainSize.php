@@ -2,10 +2,17 @@
 
 namespace App\Enums;
 
-enum GrainSize: string
+use Filament\Support\Contracts\HasLabel;
+
+enum GrainSize: string implements HasLabel
 {
     case Small = 'Small';
     case Large = 'Large';
+
+    public function getLabel(): string
+    {
+        return $this->label();
+    }
 
     public function label(): string
     {
