@@ -7,6 +7,7 @@ use App\Enums\RecipeSource;
 use App\Import\RecipeImporter;
 use App\Import\SourceReader;
 use App\Models\Recipe;
+use App\Models\RecipePhoto;
 use App\Models\Sensor;
 use Database\Seeders\SensorSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -63,6 +64,7 @@ it('only shows the diff by default and with --dry-run', function (array $options
             ['Reaparecidas', 0],
             ['Borradas en la app (ignoradas)', 0],
             ['Pendientes de revisión (needs_review)', 0],
+            ['Fotos de muestra nuevas', 0],
         ])
         ->assertSuccessful();
 
@@ -119,6 +121,7 @@ it('is idempotent', function () {
             ['Reaparecidas', 0],
             ['Borradas en la app (ignoradas)', 0],
             ['Pendientes de revisión (needs_review)', 0],
+            ['Fotos de muestra nuevas', 0],
         ])
         ->assertSuccessful();
 
@@ -312,6 +315,7 @@ it('ignores recipes deleted in the app: never recreates nor updates them', funct
             ['Reaparecidas', 0],
             ['Borradas en la app (ignoradas)', 1],
             ['Pendientes de revisión (needs_review)', 0],
+            ['Fotos de muestra nuevas', 0],
         ])
         ->assertSuccessful();
 
@@ -339,4 +343,50 @@ it('refuses to restore source values of a deleted recipe', function () {
 
     expect(fn () => (new RecipeImporter(SourceReader::fromConfig()))->restore($gold))
         ->toThrow(DomainException::class, 'está borrada');
+});
+
+it('imports sample photos for every recipe of the post, idempotently', function () {
+    $this->source
+        ->addPhoto(POST_A, 0, 'https://i0.wp.com/fujixweekly.com/wp-content/uploads/a1.jpg', 'Golden hour')
+        ->addPhoto(POST_A, 1, 'https://i0.wp.com/fujixweekly.com/wp-content/uploads/a2.jpg')
+        ->addPhoto(POST_B, 0, 'https://i0.wp.com/fujixweekly.com/wp-content/uploads/b1.jpg');
+
+    $this->artisan('recipes:import')->expectsOutputToContain('Fotos de muestra nuevas')->assertSuccessful();
+    expect(RecipePhoto::count())->toBe(0);
+
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    $gold = Recipe::where('source_url', POST_A)->firstOrFail();
+    expect($gold->samplePhotos->pluck('url')->all())->toBe([
+        'https://i0.wp.com/fujixweekly.com/wp-content/uploads/a1.jpg',
+        'https://i0.wp.com/fujixweekly.com/wp-content/uploads/a2.jpg',
+    ])
+        ->and($gold->samplePhotos->first()->caption)->toBe('Golden hour')
+        ->and($gold->samplePhotos->first()->thumbnail())->toBe('https://i0.wp.com/fujixweekly.com/wp-content/uploads/a1.jpg?w=480')
+        // POST_B tiene dos recetas: las dos reciben la foto del post
+        ->and(RecipePhoto::count())->toBe(4);
+
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+    expect(RecipePhoto::count())->toBe(4);
+});
+
+it('adds new sample photos without touching own photos', function () {
+    $this->source->addPhoto(POST_A, 0, 'https://i0.wp.com/fujixweekly.com/wp-content/uploads/a1.jpg');
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+    $gold = Recipe::where('source_url', POST_A)->firstOrFail();
+    $mine = RecipePhoto::factory()->mine()->create(['recipe_id' => $gold->id]);
+
+    $this->source->addPhoto(POST_A, 1, 'https://i0.wp.com/fujixweekly.com/wp-content/uploads/a2.jpg');
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    expect($gold->samplePhotos()->count())->toBe(2)
+        ->and($mine->fresh())->not->toBeNull();
+});
+
+it('works with a source database without the photos table', function () {
+    $this->source->withoutPhotosTable();
+
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    expect(Recipe::count())->toBe(3)->and(RecipePhoto::count())->toBe(0);
 });

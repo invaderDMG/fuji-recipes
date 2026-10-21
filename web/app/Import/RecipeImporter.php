@@ -2,6 +2,7 @@
 
 namespace App\Import;
 
+use App\Enums\PhotoSource;
 use App\Enums\RecipeSource;
 use App\Models\Recipe;
 use App\Models\Sensor;
@@ -30,6 +31,7 @@ final class RecipeImporter
     {
         $report = new ImportReport;
         $sensorsByPost = $this->reader->sensors();
+        $photosByPost = $this->reader->photos();
 
         $existing = Recipe::withTrashed()
             ->with('sensors')
@@ -56,8 +58,10 @@ final class RecipeImporter
                 'block_index' => $mapped->blockIndex,
             ]);
 
-            $pending[] = [$recipe, $mapped->sensors];
+            $photos = $photosByPost[$mapped->sourceUrl] ?? [];
+            $pending[] = [$recipe, $mapped->sensors, $photos];
             $this->apply($recipe, $mapped, $report);
+            $report->photosAdded += count($this->newPhotos($recipe, $photos));
         }
 
         $missing = $existing->filter(fn (Recipe $r, string $key) => ! isset($seen[$key]) && ! $r->trashed() && $r->missing_from_source_at === null);
@@ -81,13 +85,14 @@ final class RecipeImporter
         DB::transaction(function () use ($pending, $missing) {
             $now = now();
 
-            foreach ($pending as [$recipe, $sensors]) {
+            foreach ($pending as [$recipe, $sensors, $photos]) {
                 $recipe->imported_at = $now;
                 // Si solo cambian raw_json o imported_at, no se toca updated_at
                 $recipe->timestamps = Arr::except($recipe->getDirty(), ['raw_json', 'imported_at']) !== [];
                 $recipe->save();
                 $recipe->timestamps = true;
                 $this->syncSensors($recipe, $sensors);
+                $this->addPhotos($recipe, $photos);
             }
 
             Recipe::whereKey($missing->modelKeys())->update(['missing_from_source_at' => $now]);
@@ -115,15 +120,17 @@ final class RecipeImporter
             ?? throw new DomainException("La receta ya no está en el origen: {$recipe->source_url}#{$recipe->block_index}");
 
         $sensors = $this->reader->sensors($recipe->source_url)[$recipe->source_url] ?? [];
+        $photos = $this->reader->photos($recipe->source_url)[$recipe->source_url] ?? [];
         $report = new ImportReport;
 
-        DB::transaction(function () use ($recipe, $row, $sensors, $report) {
+        DB::transaction(function () use ($recipe, $row, $sensors, $photos, $report) {
             $recipe->load('sensors');
             $recipe->locked_fields = [];
             $this->apply($recipe, $this->mapper->map($row, $sensors), $report);
             $recipe->imported_at = now();
             $recipe->save();
             $this->syncSensors($recipe, $sensors);
+            $this->addPhotos($recipe, $photos);
         });
 
         return $report;
@@ -199,6 +206,36 @@ final class RecipeImporter
 
         $recipe->sensors()->sync($sync);
         $recipe->unsetRelation('sensors');
+    }
+
+    /**
+     * Fotos de muestra del origen que la receta aún no tiene (por URL).
+     *
+     * @param  list<array<string, mixed>>  $photos
+     * @return list<array<string, mixed>>
+     */
+    private function newPhotos(Recipe $recipe, array $photos): array
+    {
+        if ($photos === [] || ! $recipe->exists) {
+            return $photos;
+        }
+
+        $known = $recipe->samplePhotos()->pluck('url')->all();
+
+        return array_values(array_filter($photos, fn (array $p) => ! in_array($p['url'], $known, true)));
+    }
+
+    /**
+     * Añade las fotos de muestra nuevas. No borra las que ya no estén en el
+     * origen ni toca las fotos propias.
+     *
+     * @param  list<array<string, mixed>>  $photos
+     */
+    private function addPhotos(Recipe $recipe, array $photos): void
+    {
+        foreach ($this->newPhotos($recipe, $photos) as $photo) {
+            $recipe->photos()->create([...$photo, 'source' => PhotoSource::Sample]);
+        }
     }
 
     private function label(Recipe $recipe, ?string $name = null): string

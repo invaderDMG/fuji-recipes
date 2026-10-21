@@ -6,6 +6,7 @@ use App\Enums\DynamicRange;
 use App\Enums\EffectLevel;
 use App\Enums\FilmSimulation;
 use App\Enums\GrainSize;
+use App\Enums\PhotoSource;
 use App\Enums\RecipeSource;
 use Database\Factories\RecipeFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -252,6 +254,21 @@ class Recipe extends Model
             ->where('name', 'like', "%{$term}%")
             ->orWhere('author', 'like', "%{$term}%")
             ->orWhere('notes', 'like', "%{$term}%"));
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(RecipePhoto::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function samplePhotos(): HasMany
+    {
+        return $this->photos()->where('source', PhotoSource::Sample);
+    }
+
+    public function myPhotos(): HasMany
+    {
+        return $this->photos()->where('source', PhotoSource::Mine);
     }
 
     public function sensors(): BelongsToMany

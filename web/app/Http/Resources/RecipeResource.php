@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Filament\Resources\Recipes\RecipeResource as RecipeUi;
 use App\Models\Recipe;
+use App\Models\RecipePhoto;
 use App\Support\RecipeText;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -60,6 +61,13 @@ class RecipeResource extends JsonResource
             ],
             'sensors' => $this->whenLoaded('sensors', fn () => $this->sensors->pluck('slug')),
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')),
+            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn (RecipePhoto $p) => [
+                'source' => $p->source,
+                'url' => $p->src(),
+                'thumbnail' => $p->thumbnail(),
+                'caption' => $p->caption,
+                'taken_at' => $p->taken_at?->toDateString(),
+            ])),
             'personal' => [
                 'notes' => $this->notes,
                 'rating' => $this->rating,

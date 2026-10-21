@@ -8,30 +8,41 @@ simulación de película de Fujifilm. Ver `../PLAN_LARAVEL.md`.
 - PHP 8.4+ (se usa `Pdo\Sqlite` para abrir la BD de origen en solo lectura)
 - Composer, Node/npm (solo para `composer run dev`)
 
-## Puesta en marcha
+## Comandos (`make`, desde la raíz `~/fuji-recipes`)
 
-```bash
-composer install
-cp .env.example .env        # y ajusta FXW_SOURCE_DB con la ruta absoluta
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate --seed   # sensores y usuario local
-php artisan recipes:import   # dry-run: revisa el diff
-php artisan recipes:import --force
-npm install
-```
+| Comando | Qué hace |
+|---|---|
+| `make` | Lista los comandos |
+| `make setup` | Primera instalación: dependencias, `.env`, BD, sensores, usuario local y enlace de fotos |
+| `make serve` | Abre la app en http://127.0.0.1:8000 (admite fotos de hasta 64 MB) |
+| `make update` | Scrape incremental + import en simulación: muestra qué cambiaría |
+| `make import-force` | Aplica la importación (copia la BD antes) |
+| `make test` / `make check` | Tests / Pint + tests |
+| `make migrate` | Copia la BD y aplica migraciones pendientes |
+| `make backup` | Copia la BD a `web/storage/app/backups` |
 
-## Arrancar
+Opciones: `make scrape SENSOR=x-trans-v` (un solo índice) y
+`make import ONLY=fxw|mine` (un solo origen).
 
-```bash
-php artisan serve           # http://127.0.0.1:8000
-composer run dev            # servidor + cola + logs + vite
-```
+Usa `make serve` en lugar de `php artisan serve` o `composer run dev`: esos
+arrancan PHP con su límite por defecto de 2 MB por subida y no podrías subir
+tus fotos.
 
 La interfaz es un panel de Filament servido en la raíz. No hay pantalla de
 login: el middleware `LoginLocalUser` inicia sesión con el usuario que crea
 `LocalUserSeeder` (`local@fuji-recipes.test` / `fuji-recipes`, en
 `config/fuji.php`). Sirve solo en 127.0.0.1.
+
+## Recetas nuevas: scrape incremental
+
+`fxw_scraper.py` cachea cada post en `.fxw_cache/`. Cada ejecución descarga
+los 9 índices y **solo los posts nuevos**; el resto se vuelve a leer de la
+caché. `--refresh` vuelve a descargarlo todo: evítalo salvo necesidad.
+
+```bash
+make update          # scrape + diff
+make import-force    # aplicar
+```
 
 ## Importación
 
@@ -48,6 +59,8 @@ login: el middleware `LoginLocalUser` inicia sesión con el usuario que crea
   (filtro «Borradas», se puede recuperar) y la importación la ignora, así que
   no se vuelve a crear. Tampoco se inserta por la API si su `source_url` es el
   de una receta borrada.
+- Las fotos de muestra de cada post (tabla `post_photos` del scraper) se
+  añaden a sus recetas sin borrar nunca las existentes ni tocar las tuyas.
 - `needs_review` marca simulaciones sin mapear, ajustes ambiguos y valores
   fuera de rango. El resumen agrupa las simulaciones sin mapear para ampliar
   los alias de `FilmSimulationNormalizer`.
@@ -67,6 +80,15 @@ El código lee estos valores con `config('fuji.*')`, nunca con `env()`.
 ./vendor/bin/pint
 php artisan test
 ```
+
+## Fotos
+
+- **De muestra:** las del post original. Se guarda solo la URL (CDN de
+  WordPress) y la app pide miniaturas de 480 px; no se descarga nada al
+  scrapear.
+- **Tuyas:** «Mis fotos» en la ficha de cada receta. Se guardan en
+  `web/storage/app/public/photos/` (fuera de git y fuera de las copias de la
+  BD: haz tu propia copia de esa carpeta).
 
 ## Cómo añadir un ajuste nuevo de la cámara
 

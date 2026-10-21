@@ -30,7 +30,7 @@ class RecipeController extends Controller
         $flag = fn (string $key) => array_key_exists($key, $f) ? (bool) $f[$key] : null;
 
         $query = Recipe::query()
-            ->with(['sensors', 'tags'])
+            ->with(['sensors', 'tags', 'photos'])
             ->when($f['q'] ?? null, fn (Builder $q, string $term) => $q->search($term))
             ->when($f['simulation'] ?? null, fn (Builder $q, array $v) => $q->whereIn('film_simulation', $v))
             ->when($f['family'] ?? null, fn (Builder $q, array $v) => $q->inFamilies($v))
@@ -61,7 +61,7 @@ class RecipeController extends Controller
 
     public function show(Recipe $recipe): RecipeResource
     {
-        return new RecipeResource($recipe->load(['sensors', 'tags']));
+        return new RecipeResource($recipe->load(['sensors', 'tags', 'photos']));
     }
 
     /**
@@ -71,7 +71,7 @@ class RecipeController extends Controller
     {
         $f = $request->validated();
         $results = $similarity->nearest($recipe, (int) ($f['n'] ?? 10), $f['sensor'] ?? null, (bool) ($f['same_sim'] ?? false));
-        $results->each(fn ($r) => $r->recipe->loadMissing(['sensors', 'tags']));
+        $results->each(fn ($r) => $r->recipe->loadMissing(['sensors', 'tags', 'photos']));
 
         return SimilarityResource::collection($results)->additional([
             'recipe' => ['id' => $recipe->id, 'name' => $recipe->name],
@@ -96,7 +96,7 @@ class RecipeController extends Controller
             return $recipe;
         });
 
-        return (new RecipeResource($recipe->load(['sensors', 'tags'])))
+        return (new RecipeResource($recipe->load(['sensors', 'tags', 'photos'])))
             ->response()
             ->setStatusCode(201)
             ->header('Location', route('api.recipes.show', $recipe));

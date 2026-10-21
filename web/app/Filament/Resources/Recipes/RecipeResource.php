@@ -6,6 +6,7 @@ use App\Filament\Resources\Recipes\Pages\CreateRecipe;
 use App\Filament\Resources\Recipes\Pages\EditRecipe;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
 use App\Filament\Resources\Recipes\Pages\ViewRecipe;
+use App\Filament\Resources\Recipes\RelationManagers\MyPhotosRelationManager;
 use App\Filament\Resources\Recipes\Schemas\RecipeForm;
 use App\Filament\Resources\Recipes\Schemas\RecipeInfolist;
 use App\Filament\Resources\Recipes\Tables\RecipesTable;
@@ -58,7 +59,7 @@ class RecipeResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [MyPhotosRelationManager::class];
     }
 
     public static function getWidgets(): array

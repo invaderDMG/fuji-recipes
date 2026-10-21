@@ -103,6 +103,37 @@ final class SourceReader
     }
 
     /**
+     * Fotos de muestra de cada post, en orden. La tabla post_photos solo existe
+     * si fxw_scraper.py se ha ejecutado con la versión que las extrae.
+     *
+     * @return array<string, list<array{url: string, caption: ?string, width: ?int, height: ?int, position: int}>>
+     */
+    public function photos(?string $postUrl = null): array
+    {
+        if (! $this->db->table('sqlite_master')->where('name', 'post_photos')->exists()) {
+            return [];
+        }
+
+        $photos = [];
+        $rows = $this->db->table('post_photos')
+            ->when($postUrl, fn ($q) => $q->where('post_url', $postUrl))
+            ->orderBy('post_url')->orderBy('position')
+            ->get();
+
+        foreach ($rows as $row) {
+            $photos[$row->post_url][] = [
+                'url' => $row->url,
+                'caption' => SettingsNormalizer::clean($row->caption),
+                'width' => $row->width === null ? null : (int) $row->width,
+                'height' => $row->height === null ? null : (int) $row->height,
+                'position' => (int) $row->position,
+            ];
+        }
+
+        return $photos;
+    }
+
+    /**
      * La columna posts.author solo existe si fxw_mine.py ha guardado alguna receta propia.
      */
     private function hasAuthor(): bool

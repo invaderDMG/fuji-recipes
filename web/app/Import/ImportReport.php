@@ -29,6 +29,8 @@ final class ImportReport
 
     public int $needsReview = 0;
 
+    public int $photosAdded = 0;
+
     /** @var array<string, int> "campo: motivo" => recetas */
     public array $reviewReasons = [];
 

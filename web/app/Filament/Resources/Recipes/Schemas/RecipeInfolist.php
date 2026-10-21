@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\Recipes\Schemas;
 
 use App\Models\Recipe;
+use App\Models\RecipePhoto;
 use App\Support\RecipeFields;
 use App\Support\RecipeText;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -114,6 +116,30 @@ class RecipeInfolist
                                 TextEntry::make('missing_from_source_at')->label('Desaparecida del origen')->dateTime()->placeholder('—'),
                                 TextEntry::make('deleted_at')->label('Borrada')->dateTime()->placeholder('—')->color('danger'),
                                 TextEntry::make('imported_at')->label('Importada')->dateTime()->placeholder('—'),
+                            ]),
+                    ]),
+                Section::make('Fotos de muestra')
+                    ->description('Del post original en Fuji X Weekly. Pulsa una foto para verla a tamaño completo.')
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->visible(fn (Recipe $record) => $record->samplePhotos->isNotEmpty())
+                    ->schema([
+                        RepeatableEntry::make('samplePhotos')
+                            ->hiddenLabel()
+                            ->contained(false)
+                            ->grid(['default' => 2, 'md' => 3, 'xl' => 4])
+                            ->schema([
+                                ImageEntry::make('thumbnail')
+                                    ->hiddenLabel()
+                                    ->state(fn (RecipePhoto $record) => $record->thumbnail())
+                                    ->url(fn (RecipePhoto $record) => $record->src(), shouldOpenInNewTab: true)
+                                    ->imageWidth('100%')
+                                    ->imageHeight('auto')
+                                    ->extraImgAttributes(['loading' => 'lazy', 'class' => 'rounded-lg']),
+                                TextEntry::make('caption')
+                                    ->hiddenLabel()
+                                    ->size('xs')
+                                    ->color('gray'),
                             ]),
                     ]),
             ]);

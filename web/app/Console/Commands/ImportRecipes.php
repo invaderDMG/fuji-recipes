@@ -104,6 +104,7 @@ class ImportRecipes extends Command
             ['Reaparecidas', count($report->reappeared)],
             ['Borradas en la app (ignoradas)', count($report->skippedDeleted)],
             ['Pendientes de revisión (needs_review)', $report->needsReview],
+            ['Fotos de muestra nuevas', $report->photosAdded],
         ]);
 
         if ($report->reviewReasons !== []) {

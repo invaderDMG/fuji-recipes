@@ -27,6 +27,11 @@ final class SourceDatabase
             post_url TEXT NOT NULL REFERENCES posts(url), sensor TEXT NOT NULL, index_label TEXT,
             PRIMARY KEY (post_url, sensor, index_label)
         );
+        CREATE TABLE post_photos (
+            post_url TEXT NOT NULL REFERENCES posts(url), position INTEGER NOT NULL, url TEXT NOT NULL,
+            caption TEXT, width INTEGER, height INTEGER,
+            PRIMARY KEY (post_url, position)
+        );
         CREATE VIEW v_recipes AS
         SELECT r.*, p.title AS post_title, p.published, p.image_url,
                (SELECT group_concat(DISTINCT s.sensor) FROM recipe_sensors s WHERE s.post_url = r.post_url) AS sensors
@@ -92,6 +97,26 @@ final class SourceDatabase
         foreach ($sensors as $sensor => $label) {
             $this->insert('recipe_sensors', ['post_url' => $url, 'sensor' => $sensor, 'index_label' => $label], 'INSERT OR IGNORE');
         }
+
+        return $this;
+    }
+
+    public function addPhoto(string $url, int $position, string $photoUrl, ?string $caption = null): self
+    {
+        $this->insert('post_photos', [
+            'post_url' => $url, 'position' => $position, 'url' => $photoUrl,
+            'caption' => $caption, 'width' => 1600, 'height' => 1067,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * BD generada con un scraper anterior a las fotos de muestra.
+     */
+    public function withoutPhotosTable(): self
+    {
+        $this->pdo->exec('DROP TABLE post_photos');
 
         return $this;
     }
