@@ -50,6 +50,26 @@ class Recipe extends Model
         'exposure_compensation',
     ];
 
+    /**
+     * Campos que la importación no sobrescribe si están en locked_fields.
+     */
+    public const LOCKABLE = ['name', 'author', 'published_at', 'image_url', ...self::SETTINGS];
+
+    /**
+     * Rangos válidos de los ajustes numéricos: [mínimo, máximo, paso].
+     */
+    public const RANGES = [
+        'highlight' => [-2, 4, 0.5],
+        'shadow' => [-2, 4, 0.5],
+        'color' => [-4, 4, 1],
+        'sharpness' => [-4, 4, 1],
+        'high_iso_nr' => [-4, 4, 1],
+        'clarity' => [-5, 5, 1],
+        'wb_shift_red' => [-9, 9, 1],
+        'wb_shift_blue' => [-9, 9, 1],
+        'wb_kelvin' => [2500, 10000, 10],
+    ];
+
     protected $guarded = ['id'];
 
     protected $attributes = [

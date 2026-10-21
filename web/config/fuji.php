@@ -25,4 +25,19 @@ return [
 
     'default_sensor' => env('FXW_DEFAULT_SENSOR', 'x-trans-v'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Copias de seguridad
+    |--------------------------------------------------------------------------
+    |
+    | recipes:import copia la BD de Laravel aquí antes de escribir y conserva
+    | las más recientes.
+    |
+    */
+
+    'backups' => [
+        'path' => storage_path('app/backups'),
+        'keep' => 10,
+    ],
+
 ];
