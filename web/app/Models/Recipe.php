@@ -79,6 +79,11 @@ class Recipe extends Model
         'wb_kelvin' => [2500, 10000, 10],
     ];
 
+    /**
+     * Valoración personal: de 0 a RATING_MAX (0 es una nota válida, null = sin valorar).
+     */
+    public const RATING_MAX = 10;
+
     protected $guarded = ['id'];
 
     protected $attributes = [

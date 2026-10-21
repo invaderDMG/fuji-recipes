@@ -111,10 +111,12 @@ class RecipeInfolist
                                 IconEntry::make('is_favorite')->label('Favorita')->boolean(),
                                 TextEntry::make('rating')
                                     ->label('Valoración')
-                                    ->formatStateUsing(fn (?int $state) => $state ? str_repeat('★', $state) : null)
-                                    ->placeholder('—'),
+                                    ->formatStateUsing(fn (?int $state) => RecipeFields::rating($state))
+                                    ->size('lg')
+                                    ->weight('bold')
+                                    ->placeholder('Sin valorar'),
                                 TextEntry::make('tested_at')->label('Probada')->date()->placeholder('—'),
-                                TextEntry::make('notes')->label('Notas')->placeholder('—')->prose(),
+                                TextEntry::make('notes')->label('Comentarios')->placeholder('—')->prose(),
                             ]),
                         Section::make('Como texto')
                             ->description('Formato «Clave: valor» de fxw_import.py.')

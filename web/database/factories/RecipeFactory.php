@@ -88,7 +88,7 @@ class RecipeFactory extends Factory
         ]);
     }
 
-    public function favorite(int $rating = 5): static
+    public function favorite(int $rating = 9): static
     {
         return $this->state(['is_favorite' => true, 'rating' => $rating]);
     }

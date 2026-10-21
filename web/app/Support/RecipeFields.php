@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Recipe;
+
 /**
  * Etiquetas de los campos de una receta, con los nombres del menú de la cámara
  * y en su orden.
@@ -60,6 +62,24 @@ final class RecipeFields
         'high_iso_nr' => 'NR',
         'clarity' => 'Clar',
     ];
+
+    /**
+     * "7/10"; null si no está valorada (0 sí es una nota).
+     */
+    public static function rating(?int $rating): ?string
+    {
+        return $rating === null ? null : "{$rating}/".Recipe::RATING_MAX;
+    }
+
+    /**
+     * @return array<int, string> 0 => "0", …, 10 => "10"
+     */
+    public static function ratingOptions(): array
+    {
+        $values = range(0, Recipe::RATING_MAX);
+
+        return array_combine($values, array_map(strval(...), $values));
+    }
 
     public static function display(mixed $value): string
     {

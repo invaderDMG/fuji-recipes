@@ -116,9 +116,16 @@ class RecipesTable
                     ->sortable(),
                 TextColumn::make('rating')
                     ->label('Valoración')
-                    ->formatStateUsing(fn (?int $state) => $state ? str_repeat('★', $state) : null)
+                    ->formatStateUsing(fn (?int $state) => RecipeFields::rating($state))
                     ->placeholder($placeholder)
+                    ->alignEnd()
                     ->sortable(),
+                TextColumn::make('notes')
+                    ->label('Comentarios')
+                    ->limit(60)
+                    ->tooltip(fn (Recipe $record) => $record->notes)
+                    ->placeholder($placeholder)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('needs_review')
                     ->label('Revisar')
                     ->boolean()
@@ -177,6 +184,7 @@ class RecipesTable
                 self::range('highlight', 'Highlight'),
                 self::range('shadow', 'Shadow'),
                 self::range('color', 'Color'),
+                self::range('rating', 'Valoración'),
                 SelectFilter::make('tags')
                     ->label('Etiquetas')
                     ->relationship('tags', 'name')

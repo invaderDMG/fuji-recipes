@@ -44,7 +44,7 @@ class StoreRecipeRequest extends FormRequest
             'exposure_compensation' => ['nullable', 'string', 'max:255'],
             'raw_json' => ['nullable', 'array'],
             'notes' => ['nullable', 'string'],
-            'rating' => ['nullable', 'integer', 'between:1,5'],
+            'rating' => ['nullable', 'integer', 'between:0,'.Recipe::RATING_MAX],
             'is_favorite' => ['boolean'],
             'sensors' => ['array'],
             'sensors.*' => ['string', 'exists:sensors,slug'],

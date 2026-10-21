@@ -51,7 +51,7 @@ class RecipeController extends Controller
                 ? $q->whereNotNull('missing_from_source_at')
                 : $q->whereNull('missing_from_source_at'));
 
-        foreach (['highlight', 'shadow', 'color'] as $field) {
+        foreach (['highlight', 'shadow', 'color', 'rating'] as $field) {
             $query->inRange($field, $f["{$field}_min"] ?? null, $f["{$field}_max"] ?? null);
         }
 

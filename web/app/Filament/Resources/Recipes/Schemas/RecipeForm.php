@@ -175,12 +175,12 @@ class RecipeForm
                         Toggle::make('is_favorite')
                             ->label('Favorita'),
                         Select::make('rating')
-                            ->label('Valoración')
-                            ->options([1 => '★', 2 => '★★', 3 => '★★★', 4 => '★★★★', 5 => '★★★★★']),
+                            ->label('Valoración (0–'.Recipe::RATING_MAX.')')
+                            ->options(RecipeFields::ratingOptions()),
                         DatePicker::make('tested_at')
                             ->label('Probada'),
                         Textarea::make('notes')
-                            ->label('Notas')
+                            ->label('Comentarios')
                             ->rows(4),
                         Toggle::make('needs_review')
                             ->label('Pendiente de revisión')

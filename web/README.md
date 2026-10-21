@@ -101,6 +101,14 @@ son **compatibles**: las que Fuji X Weekly publica en el índice de ese sensor.
 - API: `GET /api/recipes?compatible=true|false` y el campo
   `compatible_with_my_camera`.
 
+## Valoración y comentarios
+
+Cada receta tiene una **valoración de 0 a 10** (0 es una nota; vacío = sin
+valorar) y **comentarios** (columna `notes`, incluida en la búsqueda). Se
+editan desde «Valorar» en la ficha o en el formulario, no bloquean nada
+frente a la importación y hay filtro y orden por valoración (API:
+`rating_min`, `rating_max`, `sort=-rating`).
+
 ## Recetas desde captura
 
 En el listado, **«Desde captura»**: subes una captura con la receta escrita

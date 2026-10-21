@@ -8,12 +8,15 @@ use App\Import\RecipeImporter;
 use App\Import\SourceReader;
 use App\Models\Recipe;
 use App\Support\MyCamera;
+use App\Support\RecipeFields;
 use App\Support\RecipeText;
 use DomainException;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
@@ -41,6 +44,25 @@ class ViewRecipe extends ViewRecord
             RestoreAction::make(),
             DeleteAction::make()
                 ->modalDescription('La receta se conserva como borrada y la importación no la vuelve a crear.'),
+            Action::make('rate')
+                ->label('Valorar')
+                ->icon(Heroicon::Star)
+                ->color('warning')
+                ->modalHeading(fn () => "Valorar «{$this->record->name}»")
+                ->fillForm(fn () => $this->record->only(['rating', 'notes']))
+                ->schema([
+                    Select::make('rating')
+                        ->label('Valoración (0–'.Recipe::RATING_MAX.')')
+                        ->options(RecipeFields::ratingOptions()),
+                    Textarea::make('notes')
+                        ->label('Comentarios')
+                        ->rows(5),
+                ])
+                ->action(function (array $data) {
+                    $this->record->update($data);
+                    Notification::make()->success()->title('Valoración guardada')->send();
+                })
+                ->hidden(fn () => $this->record->trashed()),
             Action::make('acceptSuggestions')
                 ->label('Aceptar propuesta')
                 ->icon(Heroicon::Check)

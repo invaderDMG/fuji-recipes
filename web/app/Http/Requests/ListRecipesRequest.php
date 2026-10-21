@@ -43,6 +43,8 @@ class ListRecipesRequest extends FormRequest
             'shadow_max' => ['nullable', 'numeric'],
             'color_min' => ['nullable', 'numeric'],
             'color_max' => ['nullable', 'numeric'],
+            'rating_min' => ['nullable', 'integer'],
+            'rating_max' => ['nullable', 'integer'],
             'tag' => ['array'],
             'tag.*' => ['string'],
             'favorite' => ['boolean'],

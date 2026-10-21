@@ -147,9 +147,10 @@ class CompareRecipes extends Page implements HasTable
             'iso_raw' => fn (Recipe $r) => $r->iso_raw,
             'exposure_compensation' => fn (Recipe $r) => $r->exposure_compensation,
             'sensors' => fn (Recipe $r) => $r->sensors->pluck('label')->implode(', ') ?: null,
+            'rating' => fn (Recipe $r) => RecipeFields::rating($r->rating),
             'my_camera' => fn (Recipe $r) => $r->isCompatibleWith(MyCamera::sensorSlug()) ? '✓ Compatible' : 'No figura',
         ];
-        $labels = ['grain_roughness' => 'Grain Effect', 'sensors' => 'Sensores', 'my_camera' => 'Mi '.MyCamera::camera()];
+        $labels = ['grain_roughness' => 'Grain Effect', 'sensors' => 'Sensores', 'rating' => 'Valoración', 'my_camera' => 'Mi '.MyCamera::camera()];
 
         $rows = [];
         foreach ($settings as $field => $value) {
