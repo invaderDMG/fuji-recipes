@@ -8,6 +8,8 @@ use App\Enums\FilmSimulation;
 use App\Enums\GrainSize;
 use App\Enums\RecipeSource;
 use Database\Factories\RecipeFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -198,6 +200,53 @@ class Recipe extends Model
     public function grainSummary(): ?string
     {
         return implode(', ', array_filter([$this->grain_roughness?->label(), $this->grain_size?->label()])) ?: null;
+    }
+
+    /**
+     * Filtros compartidos por el listado de Filament y la API.
+     *
+     * @param  list<string>  $families
+     */
+    #[Scope]
+    protected function inFamilies(Builder $query, array $families): void
+    {
+        $query->whereIn('film_simulation', collect($families)
+            ->flatMap(fn (string $family) => FilmSimulation::ofFamily($family))
+            ->map(fn (FilmSimulation $sim) => $sim->value));
+    }
+
+    #[Scope]
+    protected function inRange(Builder $query, string $field, float|int|string|null $min, float|int|string|null $max): void
+    {
+        $query
+            ->when(filled($min), fn (Builder $q) => $q->where($field, '>=', (float) $min))
+            ->when(filled($max), fn (Builder $q) => $q->where($field, '<=', (float) $max));
+    }
+
+    #[Scope]
+    protected function withLockedFields(Builder $query, bool $locked = true): void
+    {
+        $locked
+            ? $query->whereNotNull('locked_fields')->where('locked_fields', '!=', '[]')
+            : $query->where(fn (Builder $q) => $q->whereNull('locked_fields')->orWhere('locked_fields', '[]'));
+    }
+
+    /**
+     * @param  list<string>  $slugs
+     */
+    #[Scope]
+    protected function forSensors(Builder $query, array $slugs): void
+    {
+        $query->whereHas('sensors', fn (Builder $q) => $q->whereIn('slug', $slugs));
+    }
+
+    #[Scope]
+    protected function search(Builder $query, string $term): void
+    {
+        $query->where(fn (Builder $q) => $q
+            ->where('name', 'like', "%{$term}%")
+            ->orWhere('author', 'like', "%{$term}%")
+            ->orWhere('notes', 'like', "%{$term}%"));
     }
 
     public function sensors(): BelongsToMany

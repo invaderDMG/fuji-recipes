@@ -78,3 +78,50 @@ php artisan test
 
 Para un metadato personal con valores libres y repetibles, mejor una etiqueta
 que una columna nueva.
+
+## API JSON
+
+Sin autenticación y solo desde 127.0.0.1 (`OnlyLocalhost` devuelve 403 al
+resto). Los errores siempre van en JSON, aunque el cliente no envíe `Accept`.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/api/recipes` | Listado paginado con los mismos filtros que la UI |
+| GET | `/api/recipes/{id}` | Una receta, con `as_text` en formato «Clave: valor» |
+| GET | `/api/recipes/{id}/similar?n=&sensor=&same_sim=` | Las más cercanas, con distancia y desglose |
+| POST | `/api/recipes` | Crea una receta propia (`source = manual`); 201 + `Location` |
+
+Filtros de `GET /api/recipes` (las listas admiten `a,b` o `x[]=a&x[]=b`):
+`q`, `simulation`, `family`, `dr`, `sensor`, `source`, `cce`, `fx_blue`,
+`grain`, `wb_mode`, `tag`, `highlight_min/max`, `shadow_min/max`,
+`color_min/max`, `favorite`, `needs_review`, `locked`, `missing`
+(`true/false/1/0`), `sort` (`name`, `-published_at`…), `per_page` (≤ 100).
+
+```bash
+curl -s 'http://127.0.0.1:8000/api/recipes?sensor=x-trans-v&simulation=Classic%20Negative&highlight_max=-1'
+curl -s 'http://127.0.0.1:8000/api/recipes/367/similar?n=5&sensor=x-trans-v'
+```
+
+Crear una receta (p. ej. desde `fxw_import.py`, en lugar de escribir en
+`fujixweekly.db`). Los valores van normalizados: enums como en la UI
+(`"Classic Negative"`, `"Weak"`, `"DR400"`), `wb_mode` canónico y números en
+su rango; lo que no esté en las reglas se ignora.
+
+```python
+import json, urllib.request
+
+payload = {
+    "name": "Mi Gold", "author": "Yo",
+    "film_simulation": "Classic Negative", "dynamic_range": "DR400",
+    "grain_roughness": "Weak", "grain_size": "Small",
+    "color_chrome_effect": "Strong", "color_chrome_fx_blue": "Off",
+    "wb_mode": "Daylight", "wb_shift_red": 2, "wb_shift_blue": -4,
+    "highlight": -1, "shadow": 0.5, "color": 3,
+    "sharpness": -2, "high_iso_nr": -4, "clarity": -2,
+    "sensors": ["x-trans-v"], "tags": ["propia"],
+}
+req = urllib.request.Request("http://127.0.0.1:8000/api/recipes",
+                             data=json.dumps(payload).encode(),
+                             headers={"Content-Type": "application/json"})
+print(urllib.request.urlopen(req).status)  # 201; 422 con los errores si algo no valida
+```

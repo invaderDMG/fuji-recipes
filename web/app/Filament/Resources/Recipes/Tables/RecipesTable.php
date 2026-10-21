@@ -116,9 +116,7 @@ class RecipesTable
                     ->multiple()
                     ->query(fn (Builder $query, array $data) => $query->when(
                         $data['values'] ?? [],
-                        fn (Builder $q, array $families) => $q->whereIn('film_simulation', collect($families)
-                            ->flatMap(fn (string $family) => FilmSimulation::ofFamily($family))
-                            ->map->value),
+                        fn (Builder $q, array $families) => $q->inFamilies($families),
                     )),
                 SelectFilter::make('dynamic_range')
                     ->label('DR')
@@ -163,8 +161,8 @@ class RecipesTable
                 TernaryFilter::make('locked')
                     ->label('Con campos bloqueados')
                     ->queries(
-                        true: fn (Builder $q) => $q->whereNotNull('locked_fields')->where('locked_fields', '!=', '[]'),
-                        false: fn (Builder $q) => $q->where(fn (Builder $q) => $q->whereNull('locked_fields')->orWhere('locked_fields', '[]')),
+                        true: fn (Builder $q) => $q->withLockedFields(),
+                        false: fn (Builder $q) => $q->withLockedFields(false),
                     ),
                 TernaryFilter::make('missing_from_source_at')
                     ->label('Desaparecida del origen')
@@ -262,9 +260,7 @@ class RecipesTable
                     TextInput::make('max')->label("{$label} máx.")->numeric(),
                 ]),
             ])
-            ->query(fn (Builder $query, array $data) => $query
-                ->when(filled($data['min'] ?? null), fn (Builder $q) => $q->where($field, '>=', (float) $data['min']))
-                ->when(filled($data['max'] ?? null), fn (Builder $q) => $q->where($field, '<=', (float) $data['max'])))
+            ->query(fn (Builder $query, array $data) => $query->inRange($field, $data['min'] ?? null, $data['max'] ?? null))
             ->indicateUsing(fn (array $data) => array_values(array_filter([
                 filled($data['min'] ?? null) ? "{$label} ≥ {$data['min']}" : null,
                 filled($data['max'] ?? null) ? "{$label} ≤ {$data['max']}" : null,
