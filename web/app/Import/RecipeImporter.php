@@ -88,7 +88,7 @@ final class RecipeImporter
             foreach ($pending as [$recipe, $sensors, $photos]) {
                 $recipe->imported_at = $now;
                 // Si solo cambian raw_json o imported_at, no se toca updated_at
-                $recipe->timestamps = Arr::except($recipe->getDirty(), ['raw_json', 'imported_at']) !== [];
+                $recipe->timestamps = Arr::except($recipe->getDirty(), ['raw_json', 'review_issues', 'imported_at']) !== [];
                 $recipe->save();
                 $recipe->timestamps = true;
                 $this->syncSensors($recipe, $sensors);
@@ -151,6 +151,7 @@ final class RecipeImporter
             }
         }
 
+        $reviewIssues = Arr::except($mapped->reviewIssues, $locked);
         $recipe->fill(Arr::except($attributes, $locked) + ['needs_review' => $issues !== []]);
 
         if ($recipe->missing_from_source_at !== null) {
@@ -171,7 +172,9 @@ final class RecipeImporter
             $changes['sensors'] = [implode(', ', array_keys($current)) ?: '∅', implode(', ', array_keys($desired)) ?: '∅'];
         }
 
+        // raw_json y review_issues se actualizan siempre y no cuentan como cambio
         $recipe->raw_json = $mapped->attributes['raw_json'];
+        $recipe->review_issues = $reviewIssues ?: null;
 
         match (true) {
             ! $recipe->exists => $report->created[] = $label,

@@ -6,6 +6,7 @@ use App\Enums\EffectLevel;
 use App\Enums\GrainSize;
 use App\Enums\RecipeSource;
 use App\Models\Recipe;
+use App\Support\MyCamera;
 
 /**
  * Convierte una fila de v_recipes en atributos del modelo Recipe y anota los
@@ -13,6 +14,22 @@ use App\Models\Recipe;
  */
 final class SourceRecipeMapper
 {
+    /**
+     * Ajustes de nivel que pueden traer un valor distinto por sensor.
+     */
+    private const LEVELS = [
+        'grain_roughness' => EffectLevel::class,
+        'grain_size' => GrainSize::class,
+        'color_chrome_effect' => EffectLevel::class,
+        'color_chrome_fx_blue' => EffectLevel::class,
+        'smooth_skin' => EffectLevel::class,
+    ];
+
+    /**
+     * @param  string|null  $sensor  sensor para el que se proponen valores (por defecto, el de «Mi cámara»)
+     */
+    public function __construct(private ?string $sensor = null) {}
+
     public const REVIEW_EMPTY = 'vacío';
 
     public const REVIEW_OUT_OF_RANGE = 'fuera de rango';
@@ -79,13 +96,24 @@ final class SourceRecipeMapper
             }
         }
 
+        $issues = array_filter($issues);
+        $reviewIssues = [];
+        foreach ($issues as $field => $reason) {
+            $raw = $field === 'wb_mode' ? $row->wb_mode : ($row->{$field} ?? null);
+            $suggestion = isset(self::LEVELS[$field])
+                ? (SettingsNormalizer::variants($raw, self::LEVELS[$field])[$this->sensor ?? MyCamera::sensorSlug()] ?? null)?->value
+                : null;
+            $reviewIssues[$field] = ['reason' => $reason, 'raw' => $raw === null ? null : (string) $raw, 'suggestion' => $suggestion];
+        }
+
         return new MappedRecipe(
             source: str_starts_with($row->post_url, 'mine:') ? RecipeSource::Mine : RecipeSource::Fxw,
             sourceUrl: $row->post_url,
             blockIndex: (int) $row->block_index,
             attributes: $attributes,
-            issues: array_filter($issues),
+            issues: $issues,
             sensors: $sensors,
+            reviewIssues: $reviewIssues,
         );
     }
 }

@@ -41,6 +41,26 @@ class ViewRecipe extends ViewRecord
             RestoreAction::make(),
             DeleteAction::make()
                 ->modalDescription('La receta se conserva como borrada y la importación no la vuelve a crear.'),
+            Action::make('acceptSuggestions')
+                ->label('Aceptar propuesta')
+                ->icon(Heroicon::Check)
+                ->color('success')
+                ->visible(fn () => collect($this->record->review_issues ?? [])->contains(fn ($i) => filled($i['suggestion'] ?? null)))
+                ->action(function () {
+                    $this->record->acceptSuggestions();
+                    Notification::make()->success()->title('Propuesta aceptada')->send();
+                }),
+            Action::make('markReviewed')
+                ->label('Dar por buena')
+                ->icon(Heroicon::CheckBadge)
+                ->color('gray')
+                ->visible(fn () => $this->record->needs_review)
+                ->requiresConfirmation()
+                ->modalDescription('Los valores actuales se dan por buenos y quedan bloqueados frente a la importación.')
+                ->action(function () {
+                    $this->record->markReviewed();
+                    Notification::make()->success()->title('Receta revisada')->send();
+                }),
             Action::make('duplicate')
                 ->label('Duplicar como receta propia')
                 ->icon(Heroicon::DocumentDuplicate)

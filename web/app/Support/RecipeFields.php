@@ -61,6 +61,27 @@ final class RecipeFields
         'clarity' => 'Clar',
     ];
 
+    public static function display(mixed $value): string
+    {
+        return match (true) {
+            $value === null || $value === '' => '—',
+            $value instanceof \BackedEnum => (string) $value->value,
+            is_numeric($value) => (string) self::signed($value),
+            default => (string) $value,
+        };
+    }
+
+    /**
+     * "FX Blue: «Strong (X-Trans IV), Weak (X-Trans V)» → propuesta Weak"
+     *
+     * @param  array{reason: string, raw: ?string, suggestion: ?string}  $issue
+     */
+    public static function reviewLine(string $field, array $issue): string
+    {
+        return self::short($field).' ('.$issue['reason'].'): «'.($issue['raw'] ?? '—').'»'
+            .(filled($issue['suggestion'] ?? null) ? ' → propuesta '.$issue['suggestion'] : '');
+    }
+
     public static function label(string $field): string
     {
         return self::LABELS[$field] ?? $field;

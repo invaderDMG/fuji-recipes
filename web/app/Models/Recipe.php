@@ -113,6 +113,7 @@ class Recipe extends Model
             'raw_json' => 'array',
             'locked_fields' => 'array',
             'needs_review' => 'boolean',
+            'review_issues' => 'array',
             'missing_from_source_at' => 'datetime',
             'imported_at' => 'datetime',
             'rating' => 'integer',
@@ -160,6 +161,64 @@ class Recipe extends Model
 
         if ($dirty !== []) {
             $this->locked_fields = array_values(array_unique([...$this->locked_fields ?? [], ...$dirty]));
+        }
+    }
+
+    /**
+     * Acepta los valores propuestos para «Mi cámara» (los campos quedan
+     * bloqueados para que la importación no los vuelva a marcar).
+     *
+     * @param  list<string>|null  $fields  null = todos los que tienen propuesta
+     * @return int propuestas aceptadas
+     */
+    public function acceptSuggestions(?array $fields = null): int
+    {
+        $accepted = collect($this->review_issues ?? [])
+            ->filter(fn (array $issue, string $field) => filled($issue['suggestion'] ?? null) && ($fields === null || in_array($field, $fields, true)));
+
+        foreach ($accepted as $field => $issue) {
+            $this->{$field} = $issue['suggestion'];
+        }
+
+        $this->lockFields($accepted->keys()->all());
+        $this->resolveReviewIssues($accepted->keys()->all());
+        $this->save();
+
+        return $accepted->count();
+    }
+
+    /**
+     * Da por buenos los valores actuales de todos los campos pendientes.
+     */
+    public function markReviewed(): void
+    {
+        $this->lockFields(array_keys($this->review_issues ?? []));
+        $this->review_issues = null;
+        $this->needs_review = false;
+        $this->save();
+    }
+
+    /**
+     * Quita de la revisión los campos ya resueltos (no guarda).
+     *
+     * @param  list<string>  $fields
+     */
+    public function resolveReviewIssues(array $fields): void
+    {
+        $remaining = array_diff_key($this->review_issues ?? [], array_flip($fields));
+        $this->review_issues = $remaining ?: null;
+        $this->needs_review = $remaining !== [];
+    }
+
+    /**
+     * @param  list<string>  $fields
+     */
+    private function lockFields(array $fields): void
+    {
+        $fields = array_intersect($fields, self::LOCKABLE);
+
+        if ($fields !== [] && $this->source?->isImported()) {
+            $this->locked_fields = array_values(array_unique([...$this->locked_fields ?? [], ...$fields]));
         }
     }
 

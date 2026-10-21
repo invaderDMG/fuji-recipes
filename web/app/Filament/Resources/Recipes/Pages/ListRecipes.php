@@ -37,6 +37,11 @@ class ListRecipes extends ListRecords
                 ->modifyQueryUsing(fn (Builder $query) => $query->compatibleWith($sensor)),
             'all' => Tab::make('Todas')
                 ->badge(fn () => Recipe::count()),
+            'review' => Tab::make('Por revisar')
+                ->icon(Heroicon::ExclamationTriangle)
+                ->badge(fn () => Recipe::where('needs_review', true)->count() ?: null)
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('needs_review', true)),
             'incompatible' => Tab::make('No compatibles')
                 ->badge(fn () => Recipe::compatibleWith($sensor, false)->count())
                 ->badgeColor('gray')

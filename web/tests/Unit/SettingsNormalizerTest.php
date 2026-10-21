@@ -13,11 +13,14 @@ it('normalizes effect levels by the first word, like fxw_mine.py', function (?st
     ['Off', EffectLevel::Off, null],
     [null, null, null],
     ['', null, null],
-    ['Off or N/A', EffectLevel::Off, N::REVIEW_AMBIGUOUS],
+    // N/A + Off: no existe en cámaras antiguas, Off en las que lo tienen
+    ['Off or N/A', EffectLevel::Off, null],
     ['Off (X-Trans V); Weak (X-Trans IV)', EffectLevel::Off, N::REVIEW_AMBIGUOUS],
     ['Strong (X-Trans IV), Weak (X-Trans V)', EffectLevel::Strong, N::REVIEW_AMBIGUOUS],
-    ['Off/NA', null, N::REVIEW_UNMAPPED],
-    ['N/A (X-Trans III) or Off (X-T3/X-T30)', null, N::REVIEW_UNMAPPED],
+    ['Off/NA', EffectLevel::Off, null],
+    ['Off - N/A for X-T3/X-T30', EffectLevel::Off, null],
+    ['N/A (X-Trans III) or Off (X-T3/X-T30)', EffectLevel::Off, null],
+    ['N/A', null, N::REVIEW_UNMAPPED],
 ]);
 
 it('normalizes grain size', function () {
@@ -64,4 +67,14 @@ it('normalizes white balance modes', function (?string $raw, ?string $mode) {
     ['10000K', 'Kelvin'],
     ['Something else', null],
     [null, null],
+]);
+
+it('extracts the values per sensor', function (string $raw, array $expected) {
+    expect(array_map(fn ($v) => $v->value, N::variants($raw, EffectLevel::class)))->toBe($expected);
+})->with([
+    ['Off (X-Trans V); Weak (X-Trans IV)', ['x-trans-v' => 'Off', 'x-trans-iv' => 'Weak']],
+    ['Strong (X-Trans IV), Weak (X-Trans V)', ['x-trans-iv' => 'Strong', 'x-trans-v' => 'Weak']],
+    ['Strong - Weak for X-Trans V', ['x-trans-v' => 'Weak']],
+    ['Strong', []],
+    ['Small - Weak for X-T3/X-T30', []],
 ]);

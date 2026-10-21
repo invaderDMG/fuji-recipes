@@ -24,6 +24,33 @@ class RecipeInfolist
         return $schema
             ->columns(3)
             ->components([
+                Section::make('Revisión pendiente')
+                    ->description('Valores que el origen no deja claros. Acepta la propuesta para tu cámara, corrígelos editando la receta o dalos por buenos.')
+                    ->icon(Heroicon::ExclamationTriangle)
+                    ->iconColor('warning')
+                    ->columnSpanFull()
+                    ->visible(fn (Recipe $record) => $record->needs_review)
+                    ->schema([
+                        RepeatableEntry::make('review_issues')
+                            ->hiddenLabel()
+                            ->state(fn (Recipe $record) => collect($record->review_issues ?? [])
+                                ->map(fn (array $issue, string $field) => [
+                                    'field' => RecipeFields::label($field),
+                                    'reason' => $issue['reason'],
+                                    'raw' => $issue['raw'],
+                                    'current' => RecipeFields::display($record->{$field}),
+                                    'suggestion' => $issue['suggestion'] ?? null,
+                                ])->values()->all())
+                            ->columns(5)
+                            ->placeholder('Marcada a mano para revisar.')
+                            ->schema([
+                                TextEntry::make('field')->label('Ajuste')->weight('medium'),
+                                TextEntry::make('reason')->label('Motivo')->badge()->color('warning'),
+                                TextEntry::make('raw')->label('Texto original')->placeholder('—'),
+                                TextEntry::make('current')->label('Valor actual'),
+                                TextEntry::make('suggestion')->label('Propuesta para tu cámara')->placeholder('—')->color('success')->weight('bold'),
+                            ]),
+                    ]),
                 Section::make('Ajustes')
                     ->description('En el orden del menú de la cámara. 🔒 = editado a mano; la importación no lo sobrescribe.')
                     ->columnSpan(2)

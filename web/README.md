@@ -61,6 +61,12 @@ make import-force    # aplicar
   de una receta borrada.
 - Las fotos de muestra de cada post (tabla `post_photos` del scraper) se
   añaden a sus recetas sin borrar nunca las existentes ni tocar las tuyas.
+- Revisión: pestaña «Por revisar» del listado y sección en la ficha. Cada
+  receta pendiente muestra el texto original y, si el origen da un valor por
+  sensor («Strong (X-Trans IV), Weak (X-Trans V)»), la **propuesta para tu
+  cámara**. «Aceptar propuesta» y «Dar por buena» bloquean el campo, así que
+  la importación no la vuelve a marcar. «Off/NA», «Off or N/A» y similares
+  se importan como Off.
 - `needs_review` marca simulaciones sin mapear, ajustes ambiguos y valores
   fuera de rango. El resumen agrupa las simulaciones sin mapear para ampliar
   los alias de `FilmSimulationNormalizer`.

@@ -34,6 +34,12 @@ final class SettingsNormalizer
             return [null, null];
         }
 
+        // "Off/NA", "Off or N/A", "N/A (X-Trans III) or Off (X-T3/X-T30)": el ajuste no
+        // existe en cámaras antiguas y va en Off en las que lo tienen
+        if ($enum === EffectLevel::class && preg_match('#\bn/?a\b#i', $raw) && preg_match('/\boff\b/i', $raw)) {
+            return [EffectLevel::Off, null];
+        }
+
         $first = strtok(mb_strtolower($raw), " \t");
         $value = self::caseFor($enum, $first);
 
@@ -42,6 +48,31 @@ final class SettingsNormalizer
         }
 
         return [$value, strcasecmp($raw, $value->value) === 0 ? null : self::REVIEW_AMBIGUOUS];
+    }
+
+    /**
+     * Valores por sensor cuando el texto los distingue, p. ej.
+     * "Strong (X-Trans IV), Weak (X-Trans V)" o "Strong - Weak for X-Trans V".
+     *
+     * @template T of EffectLevel|GrainSize
+     *
+     * @param  class-string<T>  $enum
+     * @return array<string, T> slug del sensor => valor
+     */
+    public static function variants(?string $raw, string $enum): array
+    {
+        $values = implode('|', array_map(fn (BackedEnum $case) => $case->value, $enum::cases()));
+        $sensor = '(X-Trans\s+[IVX]+)\b';
+
+        preg_match_all("/\b({$values})\s*(?:\(\s*{$sensor}\s*\)|for\s+{$sensor})/i", (string) $raw, $matches, PREG_SET_ORDER);
+
+        $variants = [];
+        foreach ($matches as $m) {
+            $slug = strtolower(preg_replace('/\s+/', '-', $m[2] !== '' ? $m[2] : $m[3]));
+            $variants[$slug] = self::caseFor($enum, strtolower($m[1]));
+        }
+
+        return $variants;
     }
 
     /**

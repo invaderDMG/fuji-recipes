@@ -390,3 +390,49 @@ it('works with a source database without the photos table', function () {
 
     expect(Recipe::count())->toBe(3)->and(RecipePhoto::count())->toBe(0);
 });
+
+it('proposes the value for my camera and resolves N/A as Off', function () {
+    $this->source
+        ->add('https://fujixweekly.com/per-sensor/', 0, ['color_chrome_fx_blue' => 'Strong (X-Trans IV), Weak (X-Trans V)'])
+        ->add('https://fujixweekly.com/na/', 0, ['color_chrome_effect' => 'N/A (X-Trans III) or Off (X-T3/X-T30)']);
+
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    $perSensor = Recipe::where('source_url', 'https://fujixweekly.com/per-sensor/')->firstOrFail();
+    $na = Recipe::where('source_url', 'https://fujixweekly.com/na/')->firstOrFail();
+
+    expect($na->color_chrome_effect)->toBe(EffectLevel::Off)
+        ->and($na->needs_review)->toBeFalse()
+        ->and($perSensor->needs_review)->toBeTrue()
+        ->and($perSensor->color_chrome_fx_blue)->toBe(EffectLevel::Strong)
+        ->and($perSensor->review_issues)->toBe(['color_chrome_fx_blue' => [
+            'reason' => 'ambiguo', 'raw' => 'Strong (X-Trans IV), Weak (X-Trans V)', 'suggestion' => 'Weak',
+        ]]);
+
+    expect($perSensor->acceptSuggestions())->toBe(1);
+    $perSensor->refresh();
+    expect($perSensor->color_chrome_fx_blue)->toBe(EffectLevel::Weak)
+        ->and($perSensor->locked_fields)->toBe(['color_chrome_fx_blue'])
+        ->and($perSensor->needs_review)->toBeFalse()
+        ->and($perSensor->review_issues)->toBeNull();
+
+    // La importación ya no la vuelve a marcar ni le cambia el valor
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+    $perSensor->refresh();
+    expect($perSensor->needs_review)->toBeFalse()
+        ->and($perSensor->color_chrome_fx_blue)->toBe(EffectLevel::Weak);
+});
+
+it('keeps a recipe reviewed after marking it as good', function () {
+    $this->source->add('https://fujixweekly.com/c200/', 0, ['dynamic_range' => 'DR400 (DR200 in low contrast situations)']);
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    $c200 = Recipe::where('source_url', 'https://fujixweekly.com/c200/')->firstOrFail();
+    expect($c200->review_issues['dynamic_range']['suggestion'])->toBeNull();
+
+    $c200->markReviewed();
+    $this->artisan('recipes:import', ['--force' => true])->assertSuccessful();
+
+    expect($c200->fresh()->needs_review)->toBeFalse()
+        ->and($c200->fresh()->locked_fields)->toBe(['dynamic_range']);
+});

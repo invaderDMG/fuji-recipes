@@ -13,6 +13,7 @@ final class MappedRecipe
      * @param  array<string, mixed>  $attributes
      * @param  array<string, string>  $issues  campo => motivo de revisión
      * @param  array<string, string|null>  $sensors  slug => index_label
+     * @param  array<string, array{reason: string, raw: ?string, suggestion: ?string}>  $reviewIssues
      */
     public function __construct(
         public readonly RecipeSource $source,
@@ -21,6 +22,7 @@ final class MappedRecipe
         public readonly array $attributes,
         public readonly array $issues,
         public readonly array $sensors,
+        public readonly array $reviewIssues = [],
     ) {}
 
     public function key(): string

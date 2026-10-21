@@ -12,6 +12,7 @@ use App\Models\RecipeCollection;
 use App\Models\Tag;
 use App\Support\MyCamera;
 use App\Support\RecipeFields;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -73,6 +74,15 @@ class RecipesTable
                     ->badge()
                     ->placeholder($placeholder = '—')
                     ->sortable(),
+                TextColumn::make('review_issues')
+                    ->label('Pendiente')
+                    ->state(fn (Recipe $record) => collect($record->review_issues ?? [])
+                        ->map(fn (array $issue, string $field) => RecipeFields::reviewLine($field, $issue))
+                        ->values()->all())
+                    ->listWithLineBreaks()
+                    ->color('warning')
+                    ->wrap()
+                    ->visible(fn ($livewire) => ($livewire->activeTab ?? null) === 'review'),
                 TextColumn::make('dynamic_range')
                     ->label('DR')
                     ->placeholder($placeholder),
@@ -190,6 +200,23 @@ class RecipesTable
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->filtersFormColumns(4)
             ->recordActions([
+                Action::make('acceptSuggestions')
+                    ->label('Aceptar propuesta')
+                    ->icon(Heroicon::Check)
+                    ->color('success')
+                    ->visible(fn (Recipe $record) => collect($record->review_issues ?? [])->contains(fn ($i) => filled($i['suggestion'] ?? null)))
+                    ->action(function (Recipe $record) {
+                        $record->acceptSuggestions();
+                        Notification::make()->success()->title("Propuesta aceptada: {$record->name}")->send();
+                    }),
+                Action::make('markReviewed')
+                    ->label('Dar por buena')
+                    ->icon(Heroicon::CheckBadge)
+                    ->color('gray')
+                    ->visible(fn (Recipe $record) => $record->needs_review)
+                    ->requiresConfirmation()
+                    ->modalDescription('Los valores actuales se dan por buenos y quedan bloqueados frente a la importación.')
+                    ->action(fn (Recipe $record) => $record->markReviewed()),
                 ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
@@ -208,6 +235,23 @@ class RecipesTable
 
                         $livewire->redirect(CompareRecipes::urlFor($records->sortBy('id')->modelKeys()));
                     }),
+                BulkAction::make('acceptSuggestions')
+                    ->label('Aceptar propuestas')
+                    ->icon(Heroicon::Check)
+                    ->color('gray')
+                    ->action(function (Collection $records) {
+                        $accepted = $records->sum(fn (Recipe $recipe) => $recipe->acceptSuggestions());
+                        Notification::make()->success()->title("Propuestas aceptadas: {$accepted}")->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('markReviewed')
+                    ->label('Dar por buenas')
+                    ->icon(Heroicon::CheckBadge)
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('Los valores actuales se dan por buenos y quedan bloqueados frente a la importación.')
+                    ->action(fn (Collection $records) => $records->each->markReviewed())
+                    ->deselectRecordsAfterCompletion(),
                 BulkAction::make('addToCollection')
                     ->label('Añadir a colección')
                     ->icon(Heroicon::RectangleStack)
