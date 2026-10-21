@@ -1,0 +1,9 @@
+.DS_Store
+.venv/
+.fxw_cache/
+probe_*/
+*.db
+web/vendor
+web/node_modules
+web/.env
+web/database/*.sqlite
