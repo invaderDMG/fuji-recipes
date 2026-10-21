@@ -128,6 +128,15 @@ CREATE TABLE IF NOT EXISTS recipe_sensors (
     index_label TEXT,
     PRIMARY KEY (post_url, sensor, index_label)
 );
+CREATE TABLE IF NOT EXISTS post_photos (
+    post_url TEXT NOT NULL REFERENCES posts(url),
+    position INTEGER NOT NULL,
+    url TEXT NOT NULL,
+    caption TEXT,
+    width INTEGER,
+    height INTEGER,
+    PRIMARY KEY (post_url, position)
+);
 CREATE VIEW IF NOT EXISTS v_recipes AS
 SELECT r.*, p.title AS post_title, p.published, p.image_url,
        (SELECT group_concat(DISTINCT s.sensor) FROM recipe_sensors s WHERE s.post_url = r.post_url) AS sensors
@@ -214,7 +223,7 @@ def looks_like_heading(line):
 
 # Posts antiguos (2017–2022): la simulación va sola en una línea, sin "Film Simulation:"
 SIM_LINE = re.compile(
-    r"^(?:classic chrome|classic neg|nostalgic neg|pro neg|reala|eterna|acros|monochrome|b&w|"
+    r"^(?:classic chrome|classic neg(?:ative|\.)?|nostalgic neg(?:ative|\.)?|pro neg|reala|eterna|acros|monochrome|b&w|"
     r"black (?:&|and) white|sepia|provia|velvia|astia|standard|vivid|soft)\b", re.I)
 
 
@@ -340,16 +349,45 @@ def parse_index(html):
     return seen  # url -> etiqueta en el índice
 
 
+PHOTO_MIN_SIDE = 400  # descarta banners e iconos (app, tiendas…)
+
+
+def parse_photos(node):
+    """Fotos de muestra del post: imágenes de WordPress subidas a fujixweekly.com."""
+    photos, seen = [], set()
+    for img in node.find_all("img"):
+        if not any(c.startswith("wp-image") for c in img.get("class") or []):
+            continue
+        url = (img.get("data-orig-file") or img.get("src") or "").split("?")[0]
+        if "fujixweekly.com/wp-content/uploads/" not in url or url in seen:
+            continue
+        w = h = None
+        size = img.get("data-orig-size") or ""
+        if re.fullmatch(r"\d+,\d+", size):
+            w, h = map(int, size.split(","))
+            if min(w, h) < PHOTO_MIN_SIDE:
+                continue
+        fig = img.find_parent("figure")
+        cap = fig.find("figcaption") if fig else None
+        seen.add(url)
+        photos.append({"url": url, "caption": norm(cap.get_text(" ")) if cap else None,
+                       "width": w, "height": h})
+    return photos
+
+
 def parse_post(html):
     soup = BeautifulSoup(html, "html.parser")
     meta = lambda p: (soup.find("meta", property=p) or {}).get("content")
     title = norm(meta("og:title") or (soup.title.string if soup.title else "") or "")
-    lines = content_lines(content_root(soup))
+    root = content_root(soup)
+    photos = parse_photos(root)  # antes de content_lines, que modifica el árbol
+    lines = content_lines(root)
     return {
         "title": title,
         "published": meta("article:published_time"),
         "image_url": meta("og:image"),
         "blocks": extract_blocks(lines),
+        "photos": photos,
     }
 
 
@@ -381,13 +419,17 @@ def main():
         if not html:
             continue
         p = parse_post(html)
-        print(f"  {n}/{len(posts)} {len(p['blocks'])} receta(s) · {p['title'][:70]}")
+        print(f"  {n}/{len(posts)} {len(p['blocks'])} receta(s), {len(p['photos'])} foto(s) · {p['title'][:60]}")
         db.execute("INSERT OR REPLACE INTO posts(url,title,published,image_url) VALUES (?,?,?,?)",
                    (url, p["title"], p["published"], p["image_url"]))
         for sensor, label in refs:
             db.execute("INSERT OR IGNORE INTO recipe_sensors VALUES (?,?,?)", (url, sensor, label))
         if not p["blocks"]:
             no_recipe.append(url)
+        db.execute("DELETE FROM post_photos WHERE post_url=?", (url,))
+        for pos, ph in enumerate(p["photos"]):
+            db.execute("INSERT INTO post_photos VALUES (?,?,?,?,?,?)",
+                       (url, pos, ph["url"], ph["caption"], ph["width"], ph["height"]))
         db.execute("DELETE FROM recipes WHERE post_url=?", (url,))
         label = refs[0][1]
         for i, (heading, raw) in enumerate(p["blocks"]):
