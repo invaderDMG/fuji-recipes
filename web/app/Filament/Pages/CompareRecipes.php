@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -90,6 +91,13 @@ class CompareRecipes extends Page implements HasTable
                 ->description('Menor = más parecidas; 0 = idénticas.')
                 ->columns(3)
                 ->schema($this->distanceEntries()),
+            Section::make('Escalas')
+                ->description('Cada receta sobre la escala de la cámara, con la tinta de su simulación.')
+                ->collapsible()
+                ->schema([
+                    View::make('filament.compare-scales')
+                        ->viewData(fn () => ['recipes' => $this->recipes()]),
+                ]),
             EmbeddedTable::make(),
         ]);
     }

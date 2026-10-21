@@ -10,9 +10,11 @@ use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Contracts\HasLabel;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
@@ -52,47 +54,20 @@ class RecipeInfolist
                             ]),
                     ]),
                 Section::make('Ajustes')
-                    ->description('En el orden del menú de la cámara. 🔒 = editado a mano; la importación no lo sobrescribe.')
+                    ->description('En el orden del menú de la cámara. El candado marca lo editado a mano: la importación no lo sobrescribe.')
                     ->columnSpan(2)
-                    ->columns(3)
                     ->schema([
-                        self::setting('film_simulation', ['film_simulation'])
-                            ->badge()
-                            ->helperText(fn (Recipe $record) => $record->film_simulation?->value === $record->film_simulation_raw
-                                ? null
-                                : 'Original: '.($record->film_simulation_raw ?? '—')),
-                        self::setting('grain_effect', ['grain_roughness', 'grain_size'], 'Grain Effect')
-                            ->state(fn (Recipe $record) => $record->grainSummary()),
-                        self::setting('color_chrome_effect', ['color_chrome_effect']),
-                        self::setting('color_chrome_fx_blue', ['color_chrome_fx_blue']),
-                        self::setting('white_balance', ['wb_mode', 'wb_kelvin', 'wb_shift_red', 'wb_shift_blue'], 'White Balance')
-                            ->state(fn (Recipe $record) => $record->whiteBalanceSummary())
-                            ->helperText(fn (Recipe $record) => $record->white_balance_raw ? "Original: {$record->white_balance_raw}" : null),
-                        self::setting('dynamic_range', ['dynamic_range']),
-                        self::setting('d_range_priority', ['d_range_priority']),
-                        self::setting('highlight', ['highlight'])->formatStateUsing(self::signed(...)),
-                        self::setting('shadow', ['shadow'])->formatStateUsing(self::signed(...)),
-                        self::setting('color', ['color'])->formatStateUsing(self::signed(...)),
-                        self::setting('sharpness', ['sharpness'])->formatStateUsing(self::signed(...)),
-                        self::setting('high_iso_nr', ['high_iso_nr'])->formatStateUsing(self::signed(...)),
-                        self::setting('clarity', ['clarity'])->formatStateUsing(self::signed(...)),
-                        self::setting('iso_raw', ['iso_raw', 'iso_max']),
-                        self::setting('exposure_compensation', ['exposure_compensation']),
-                        self::setting('monochromatic_color', ['monochromatic_color'])
-                            ->visible(fn (Recipe $record) => $record->monochromatic_color !== null),
-                        self::setting('smooth_skin', ['smooth_skin'])
-                            ->visible(fn (Recipe $record) => $record->smooth_skin !== null),
-                        self::setting('tone_curve', ['tone_curve'])
-                            ->visible(fn (Recipe $record) => $record->tone_curve !== null),
+                        ViewEntry::make('settings')
+                            ->hiddenLabel()
+                            ->view('filament.recipes.settings-grid')
+                            ->viewData(fn (Recipe $record) => ['tiles' => self::tiles($record)]),
                     ]),
                 Grid::make(1)
                     ->columnSpan(1)
                     ->schema([
-                        ImageEntry::make('image_url')
+                        ViewEntry::make('image_url')
                             ->hiddenLabel()
-                            ->imageWidth('100%')
-                            ->imageHeight('auto')
-                            ->visible(fn (Recipe $record) => $record->image_url !== null),
+                            ->view('filament.recipes.detail-photo'),
                         Section::make('Receta')
                             ->schema([
                                 self::setting('author', ['author'], 'Autor'),
@@ -109,12 +84,9 @@ class RecipeInfolist
                         Section::make('Personal')
                             ->schema([
                                 IconEntry::make('is_favorite')->label('Favorita')->boolean(),
-                                TextEntry::make('rating')
+                                ViewEntry::make('rating')
                                     ->label('Valoración')
-                                    ->formatStateUsing(fn (?int $state) => RecipeFields::rating($state))
-                                    ->size('lg')
-                                    ->weight('bold')
-                                    ->placeholder('Sin valorar'),
+                                    ->view('filament.recipes.entry-rating'),
                                 TextEntry::make('tested_at')->label('Probada')->date()->placeholder('—'),
                                 TextEntry::make('notes')->label('Comentarios')->placeholder('—')->prose(),
                             ]),
@@ -191,8 +163,63 @@ class RecipeInfolist
             ->iconColor('warning');
     }
 
-    private static function signed(mixed $state): ?string
+    /**
+     * Casillas de la cuadrícula de ajustes; las opcionales solo si la receta las usa.
+     *
+     * @return list<array{key: string, label: string, value: ?string, note: ?string, locked: bool}>
+     */
+    public static function tiles(Recipe $record): array
     {
-        return RecipeFields::signed($state);
+        $signed = fn (string $field) => fn (Recipe $r) => RecipeFields::signed($r->{$field});
+        $plain = fn (string $field) => fn (Recipe $r) => match (true) {
+            $r->{$field} instanceof HasLabel => $r->{$field}->getLabel(),
+            blank($r->{$field}) => null,
+            default => RecipeFields::display($r->{$field}),
+        };
+
+        $tiles = [
+            ['film_simulation', ['film_simulation'], fn (Recipe $r) => $r->film_simulation?->label() ?? $r->film_simulation_raw,
+                fn (Recipe $r) => $r->film_simulation?->value === $r->film_simulation_raw ? null : 'Original: '.($r->film_simulation_raw ?? '—')],
+            ['monochromatic_color', ['monochromatic_color'], $plain('monochromatic_color'), null, true],
+            ['grain_effect', ['grain_roughness', 'grain_size'], fn (Recipe $r) => $r->grainSummary()],
+            ['color_chrome_effect', ['color_chrome_effect'], $plain('color_chrome_effect')],
+            ['color_chrome_fx_blue', ['color_chrome_fx_blue'], $plain('color_chrome_fx_blue')],
+            ['smooth_skin', ['smooth_skin'], $plain('smooth_skin'), null, true],
+            ['white_balance', ['wb_mode', 'wb_kelvin', 'wb_shift_red', 'wb_shift_blue'], fn (Recipe $r) => $r->whiteBalanceSummary(),
+                fn (Recipe $r) => $r->white_balance_raw ? "Original: {$r->white_balance_raw}" : null],
+            ['dynamic_range', ['dynamic_range'], fn (Recipe $r) => $r->dynamic_range?->label()],
+            ['d_range_priority', ['d_range_priority'], $plain('d_range_priority')],
+            ['tone_curve', ['tone_curve'], $plain('tone_curve'), null, true],
+            ['highlight', ['highlight'], $signed('highlight')],
+            ['shadow', ['shadow'], $signed('shadow')],
+            ['color', ['color'], $signed('color')],
+            ['sharpness', ['sharpness'], $signed('sharpness')],
+            ['high_iso_nr', ['high_iso_nr'], $signed('high_iso_nr')],
+            ['clarity', ['clarity'], $signed('clarity')],
+            ['iso_raw', ['iso_raw', 'iso_max'], $plain('iso_raw')],
+            ['exposure_compensation', ['exposure_compensation'], $plain('exposure_compensation')],
+        ];
+
+        $locked = $record->locked_fields ?? [];
+        $result = [];
+
+        foreach ($tiles as $tile) {
+            [$key, $fields, $value, $note, $optional] = $tile + [3 => null, 4 => false];
+            $value = $value($record);
+
+            if ($optional && $value === null) {
+                continue;
+            }
+
+            $result[] = [
+                'key' => $key,
+                'label' => RecipeFields::label($fields[0]),
+                'value' => $value,
+                'note' => $note ? $note($record) : null,
+                'locked' => array_intersect($fields, $locked) !== [],
+            ];
+        }
+
+        return $result;
     }
 }

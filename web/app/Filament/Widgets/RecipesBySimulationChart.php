@@ -20,11 +20,18 @@ class RecipesBySimulationChart extends ChartWidget
             ->orderByDesc('total')
             ->pluck('total', 'film_simulation');
 
+        $sims = $counts->keys()->map(fn (?string $sim) => $sim === null || $sim === '' ? null : FilmSimulation::from($sim));
+        // Cada barra con la tinta de su familia, como en el listado
+        $inks = $sims->map(fn (?FilmSimulation $sim) => FilmSimulation::FAMILY_INK[$sim?->family() ?? 'mono'])->all();
+
         return [
-            'datasets' => [['label' => 'Recetas', 'data' => $counts->values()->all()]],
-            'labels' => $counts->keys()->map(fn (?string $sim) => $sim === null || $sim === ''
-                ? 'Sin simulación'
-                : FilmSimulation::from($sim)->label())->all(),
+            'datasets' => [[
+                'label' => 'Recetas',
+                'data' => $counts->values()->all(),
+                'backgroundColor' => $inks,
+                'borderColor' => $inks,
+            ]],
+            'labels' => $sims->map(fn (?FilmSimulation $sim) => $sim?->label() ?? 'Sin simulación')->all(),
         ];
     }
 

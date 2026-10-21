@@ -1,0 +1,458 @@
+/*
+ * Fuji Recipes, estilo «mesa de luz». Se carga después del CSS de Filament
+ * (FujiTheme::stylesheet) y no se compila: el despliegue no necesita Node.
+ *
+ * Una tinta por familia de simulación (las mismas que FilmSimulation::FAMILY_INK),
+ * escalas como las de la cámara y Archivo con su eje de anchura.
+ */
+
+:root {
+    --fuji-ink: #555b58;
+    --fuji-on-ink: #fff;
+    --fuji-rule: var(--gray-300);
+    --fuji-muted: var(--gray-600);
+    --fuji-surface: #fff;
+}
+
+.dark {
+    --fuji-rule: var(--gray-700);
+    --fuji-muted: var(--gray-400);
+    --fuji-surface: var(--gray-900);
+}
+
+.fuji-fam-proneg { --fuji-ink: #76688f; }
+.fuji-fam-neg { --fuji-ink: #b8711f; }
+.fuji-fam-chrome { --fuji-ink: #7a7548; }
+.fuji-fam-eterna { --fuji-ink: #3c7559; }
+.fuji-fam-slide { --fuji-ink: #2f65a8; }
+.fuji-fam-vivid { --fuji-ink: #ae2f66; }
+.fuji-fam-mono { --fuji-ink: #555b58; }
+
+/* En el visor oscuro las tintas se aclaran para leerse sobre negro */
+.dark .fuji-fam-proneg { --fuji-ink: #ae9fd0; }
+.dark .fuji-fam-neg { --fuji-ink: #e29b4a; }
+.dark .fuji-fam-chrome { --fuji-ink: #b4ad72; }
+.dark .fuji-fam-eterna { --fuji-ink: #6fb38f; }
+.dark .fuji-fam-slide { --fuji-ink: #74a6e6; }
+.dark .fuji-fam-vivid { --fuji-ink: #e26c9c; }
+.dark .fuji-fam-mono { --fuji-ink: #a3aba7; }
+.dark [class*="fuji-fam-"] { --fuji-on-ink: var(--gray-950); }
+
+/* ---------------------------------------------------------------- base */
+
+.fi-body {
+    font-variation-settings: "wdth" 100;
+    font-variant-numeric: tabular-nums;
+}
+
+/* La mesa de luz: fondo un punto más oscuro que las hojas que hay encima */
+.fi-body:not(.dark *) {
+    background-color: var(--gray-100);
+}
+
+.fi-header-heading {
+    font-weight: 850;
+    font-variation-settings: "wdth" 118;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+.fi-sidebar-header .fi-logo,
+.fi-topbar .fi-logo {
+    font-weight: 850;
+    font-variation-settings: "wdth" 125;
+    letter-spacing: -0.01em;
+}
+
+.fi-section-header-heading {
+    font-weight: 750;
+    font-variation-settings: "wdth" 108;
+}
+
+/* Etiquetas de campos y cabeceras de tabla, estrechas como en el menú de la cámara */
+.fi-in-entry-label,
+.fi-fo-field-label-content,
+.fi-ta-header-cell-label {
+    font-variation-settings: "wdth" 78;
+}
+
+/* ---------------------------------------------------------------- escala ±N */
+
+.fuji-scale {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 7.5rem) minmax(0, 1fr) 2.5rem;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+}
+
+.fuji-scale-label {
+    color: var(--fuji-muted);
+    font-variation-settings: "wdth" 70;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fuji-scale > b {
+    text-align: right;
+    font-weight: 650;
+    font-variation-settings: "wdth" 80;
+}
+
+.fuji-scale-track {
+    position: relative;
+    height: 12px;
+}
+
+/* Una marca por paso y el cero más marcado, como la escala de exposición del visor */
+.fuji-scale-track::before {
+    content: "";
+    position: absolute;
+    inset: 3px 0;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--fuji-rule) 0 1px,
+        transparent 1px calc((100% - 1px) / var(--steps, 8))
+    );
+}
+
+.fuji-scale-track::after {
+    content: "";
+    position: absolute;
+    left: var(--zero, 50%);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--fuji-muted);
+}
+
+.fuji-scale-track.is-empty::after {
+    display: none;
+}
+
+.fuji-scale-track i {
+    position: absolute;
+    top: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--fuji-ink);
+}
+
+.fuji-scale-track u {
+    position: absolute;
+    top: 1px;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--fuji-ink);
+    box-shadow: 0 0 0 2px var(--fuji-surface);
+}
+
+.fuji-scales {
+    display: grid;
+    gap: 0.25rem;
+}
+
+/* ---------------------------------------------------------------- foto y banda */
+
+.fuji-photo {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    max-width: 100%;
+    overflow: hidden;
+    background:
+        radial-gradient(120% 90% at 30% 20%, color-mix(in oklab, var(--fuji-ink) 35%, var(--fuji-surface)), transparent 60%),
+        linear-gradient(160deg, color-mix(in oklab, var(--fuji-ink) 60%, var(--gray-950)), color-mix(in oklab, var(--fuji-ink) 25%, var(--gray-100)));
+}
+
+.fuji-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* El único color fuerte de la interfaz */
+.fuji-band {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.3rem 0.75rem;
+    background: var(--fuji-ink);
+    color: var(--fuji-on-ink);
+    font-size: 0.8125rem;
+    font-weight: 650;
+    font-variation-settings: "wdth" 70;
+    letter-spacing: 0.02em;
+}
+
+.fuji-band span:last-child {
+    font-weight: 450;
+}
+
+.fuji-photo-marks {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+}
+
+.fuji-mark {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+    background: rgb(0 0 0 / 0.6);
+    color: #fff;
+    font-size: 0.75rem;
+    font-variation-settings: "wdth" 75;
+}
+
+.fuji-mark svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    color: #f5c451;
+}
+
+/* ---------------------------------------------------------------- tarjeta del listado */
+
+.fi-ta-content-grid .fi-ta-record {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.fi-ta-content-grid .fi-ta-record-content-ctn {
+    padding-block-start: 0;
+}
+
+/* La foto llega a los bordes de la tarjeta; el resto lleva margen */
+.fi-ta-content-ctn .fi-ta-content.fi-ta-content-grid .fi-ta-record .fi-ta-record-content {
+    padding-inline: 1rem;
+}
+
+.fi-ta-content-grid .fi-ta-record-content .fi-ta-col,
+.fi-ta-content-grid .fi-ta-record-content .fuji-scales {
+    width: 100%;
+}
+
+.fi-ta-content-grid .fi-ta-record .fuji-photo {
+    width: calc(100% + 2rem);
+    max-width: none;
+    margin-inline: -1rem;
+}
+
+.fi-ta-content-grid .fi-ta-record.fi-ta-record-with-content-prefix {
+    padding-inline-start: 0;
+}
+
+/* La casilla de selección se apoya sobre la foto */
+.fi-ta-content-grid .fi-ta-record-checkbox {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 2;
+}
+
+.fi-ta-content-ctn .fi-ta-content.fi-ta-content-grid .fi-ta-record .fi-ta-actions {
+    padding-inline: 1rem;
+}
+
+.fi-ta-content-grid .fi-ta-record.fi-clickable:hover .fuji-photo img {
+    filter: brightness(1.05);
+}
+
+.fuji-card-title {
+    font-size: 1.125rem;
+    line-height: 1.15;
+    font-weight: 800;
+    font-variation-settings: "wdth" 115;
+    text-wrap: balance;
+}
+
+.fuji-card-meta {
+    font-size: 0.8125rem;
+    color: var(--fuji-muted);
+    font-variation-settings: "wdth" 80;
+}
+
+/* ---------------------------------------------------------------- valoración */
+
+.fuji-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.fuji-rating-bar {
+    display: flex;
+    gap: 2px;
+}
+
+.fuji-rating-bar i {
+    width: 12px;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--fuji-rule);
+}
+
+.fuji-rating-bar i.is-on {
+    background: var(--gray-950);
+}
+
+.dark .fuji-rating-bar i.is-on {
+    background: var(--gray-100);
+}
+
+.fuji-rating b {
+    font-weight: 650;
+}
+
+/* ---------------------------------------------------------------- ficha: cuadrícula de ajustes */
+
+.fuji-settings {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid var(--fuji-rule);
+    border-radius: 6px;
+    overflow: hidden;
+    /* las líneas interiores salen del hueco entre casillas */
+    gap: 1px;
+    background: var(--fuji-rule);
+}
+
+.fuji-setting {
+    display: grid;
+    align-content: start;
+    gap: 0.15rem;
+    min-width: 0;
+    padding: 0.65rem 0.8rem 0.8rem;
+    background: var(--fuji-surface);
+}
+
+.fuji-setting-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--fuji-muted);
+    font-variation-settings: "wdth" 70;
+}
+
+.fuji-setting > b {
+    font-size: 1.25rem;
+    line-height: 1.15;
+    font-weight: 750;
+    font-variation-settings: "wdth" 85;
+    overflow-wrap: anywhere;
+}
+
+.fuji-setting > small {
+    font-size: 0.75rem;
+    color: var(--fuji-muted);
+    font-variation-settings: "wdth" 80;
+}
+
+.fuji-setting.is-sim {
+    grid-column: 1 / -1;
+    background: var(--fuji-ink);
+    color: var(--fuji-on-ink);
+}
+
+.fuji-setting.is-sim .fuji-setting-label,
+.fuji-setting.is-sim > small {
+    color: inherit;
+    opacity: 0.85;
+}
+
+.fuji-setting.is-sim > b {
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-variation-settings: "wdth" 112;
+}
+
+.fuji-lock svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    color: var(--warning-600);
+}
+
+.fuji-setting.is-sim .fuji-lock svg {
+    color: inherit;
+}
+
+/* La última casilla ocupa lo que quede de su fila (la simulación es la primera, a lo ancho) */
+.fuji-setting:last-child:nth-child(3n) {
+    grid-column: span 2;
+}
+
+.fuji-setting:last-child:nth-child(3n + 2) {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 40rem) {
+    .fuji-settings {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fuji-setting:last-child:nth-child(n) {
+        grid-column: auto;
+    }
+
+    .fuji-setting:last-child:nth-child(2n) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ---------------------------------------------------------------- ficha: foto y escalas */
+
+.fuji-detail-photo {
+    display: grid;
+    gap: 1rem;
+}
+
+.fuji-detail-photo .fuji-photo {
+    border-radius: 6px;
+}
+
+/* ---------------------------------------------------------------- comparar */
+
+.fuji-compare {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 1.25rem 2rem;
+}
+
+.fuji-compare-field {
+    display: grid;
+    gap: 0.3rem;
+    align-content: start;
+}
+
+.fuji-compare-field h4 {
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.fuji-compare .fuji-scale {
+    grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr) 2.5rem;
+}
+
+.fuji-compare .fuji-scale-label {
+    color: var(--fuji-ink);
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .fuji-photo img {
+        transition: filter 0.15s ease;
+    }
+}

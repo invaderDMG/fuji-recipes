@@ -104,19 +104,25 @@ enum FilmSimulation: string implements HasColor, HasLabel
     ];
 
     /**
+     * Tinta de cada familia, como el color de una caja de película.
+     * Las mismas que --fuji-ink en public/css/fuji.css (allí también las de modo oscuro).
+     */
+    public const FAMILY_INK = [
+        'proneg' => '#76688f',
+        'neg' => '#b8711f',
+        'chrome' => '#7a7548',
+        'eterna' => '#3c7559',
+        'slide' => '#2f65a8',
+        'vivid' => '#ae2f66',
+        'mono' => '#555b58',
+    ];
+
+    /**
      * @return array<int|string, string>
      */
     public static function familyColor(string $family): array
     {
-        return match ($family) {
-            'proneg' => Color::Sky,
-            'neg' => Color::Orange,
-            'chrome' => Color::Teal,
-            'eterna' => Color::Emerald,
-            'slide' => Color::Blue,
-            'vivid' => Color::Rose,
-            default => Color::Zinc,
-        };
+        return Color::hex(self::FAMILY_INK[$family] ?? self::FAMILY_INK['mono']);
     }
 
     /**

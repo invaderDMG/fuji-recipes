@@ -10,7 +10,6 @@ use App\Filament\Pages\CompareRecipes;
 use App\Models\Recipe;
 use App\Models\RecipeCollection;
 use App\Models\Tag;
-use App\Support\MyCamera;
 use App\Support\RecipeFields;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -25,9 +24,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -43,102 +42,46 @@ class RecipesTable
 {
     public static function configure(Table $table): Table
     {
-        $mySensor = MyCamera::sensorSlug();
-
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with('sensors'))
+            // Hoja de contactos: una tarjeta por receta (vistas en resources/views/filament/recipes)
+            ->contentGrid(['md' => 2, 'xl' => 3, '2xl' => 4])
             ->columns([
-                ImageColumn::make('image_url')
-                    ->label('')
-                    ->square()
-                    ->imageSize(48),
-                TextColumn::make('name')
-                    ->label('Nombre')
-                    ->searchable(['name', 'author', 'notes'])
-                    ->sortable()
-                    ->description(fn (Recipe $record) => $record->author)
-                    ->wrap(),
-                IconColumn::make('compatible')
-                    ->label('')
-                    ->state(fn (Recipe $record) => $record->isCompatibleWith($mySensor))
-                    ->boolean()
-                    ->trueIcon('heroicon-s-camera')
-                    ->trueColor('success')
-                    ->falseIcon('heroicon-o-no-symbol')
-                    ->falseColor('gray')
-                    ->tooltip(fn (Recipe $record) => $record->isCompatibleWith($mySensor)
-                        ? 'Compatible con '.MyCamera::label()
-                        : 'No figura para '.MyCamera::label()),
-                TextColumn::make('film_simulation')
-                    ->label('Simulación')
-                    ->badge()
-                    ->placeholder($placeholder = '—')
-                    ->sortable(),
-                TextColumn::make('review_issues')
-                    ->label('Pendiente')
-                    ->state(fn (Recipe $record) => collect($record->review_issues ?? [])
-                        ->map(fn (array $issue, string $field) => RecipeFields::reviewLine($field, $issue))
-                        ->values()->all())
-                    ->listWithLineBreaks()
-                    ->color('warning')
-                    ->wrap()
-                    ->visible(fn ($livewire) => ($livewire->activeTab ?? null) === 'review'),
-                TextColumn::make('dynamic_range')
-                    ->label('DR')
-                    ->placeholder($placeholder),
-                self::number('highlight', 'H'),
-                self::number('shadow', 'S'),
-                self::number('color', 'Col'),
-                TextColumn::make('white_balance')
-                    ->label('WB')
-                    ->state(fn (Recipe $record) => $record->whiteBalanceSummary())
-                    ->placeholder($placeholder),
-                TextColumn::make('grain')
-                    ->label('Grano')
-                    ->state(fn (Recipe $record) => $record->grainSummary())
-                    ->placeholder($placeholder),
-                TextColumn::make('sensors.label')
-                    ->label('Sensores')
-                    ->badge()
-                    ->color('gray')
-                    ->limitList(3),
-                TextColumn::make('source')
-                    ->label('Origen')
-                    ->badge()
-                    ->toggleable(),
-                IconColumn::make('is_favorite')
-                    ->label('Fav.')
-                    ->boolean()
-                    ->trueIcon('heroicon-s-star')
-                    ->falseIcon('heroicon-o-star')
-                    ->trueColor('warning')
-                    ->falseColor('gray')
-                    ->sortable(),
-                TextColumn::make('rating')
-                    ->label('Valoración')
-                    ->formatStateUsing(fn (?int $state) => RecipeFields::rating($state))
-                    ->placeholder($placeholder)
-                    ->alignEnd()
-                    ->sortable(),
-                TextColumn::make('notes')
-                    ->label('Comentarios')
-                    ->limit(60)
-                    ->tooltip(fn (Recipe $record) => $record->notes)
-                    ->placeholder($placeholder)
-                    ->toggleable(isToggledHiddenByDefault: true),
-                IconColumn::make('needs_review')
-                    ->label('Revisar')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-exclamation-triangle')
-                    ->trueColor('warning')
-                    ->falseIcon('')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('published_at')
-                    ->label('Publicada')
-                    ->date()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Stack::make([
+                    ViewColumn::make('image_url')
+                        ->label('Foto')
+                        ->view('filament.recipes.card-photo'),
+                    ViewColumn::make('name')
+                        ->label('Nombre')
+                        ->view('filament.recipes.card-title')
+                        ->searchable(['name', 'author', 'notes'])
+                        ->sortable(),
+                    TextColumn::make('review_issues')
+                        ->label('Pendiente')
+                        ->state(fn (Recipe $record) => collect($record->review_issues ?? [])
+                            ->map(fn (array $issue, string $field) => RecipeFields::reviewLine($field, $issue))
+                            ->values()->all())
+                        ->listWithLineBreaks()
+                        ->color('warning')
+                        ->size('sm')
+                        ->wrap()
+                        ->visible(fn ($livewire) => ($livewire->activeTab ?? null) === 'review'),
+                    ViewColumn::make('highlight')
+                        ->label(RecipeFields::label('highlight'))
+                        ->view('filament.recipes.card-scales')
+                        ->sortable(),
+                    ViewColumn::make('rating')
+                        ->label('Valoración')
+                        ->view('filament.recipes.card-rating')
+                        ->sortable(),
+                    ViewColumn::make('published_at')
+                        ->label('Publicada')
+                        ->view('filament.recipes.card-meta')
+                        ->sortable(),
+                ])->space(3),
             ])
+            ->paginated([12, 24, 48, 96])
+            ->defaultPaginationPageOption(24)
             ->defaultSort('published_at', 'desc')
             ->filters([
                 SelectFilter::make('film_simulation')
@@ -311,17 +254,6 @@ class RecipesTable
                     RestoreBulkAction::make(),
                 ]),
             ]);
-    }
-
-    private static function number(string $field, string $label): TextColumn
-    {
-        return TextColumn::make($field)
-            ->label($label)
-            ->tooltip(RecipeFields::label($field))
-            ->formatStateUsing(fn ($state) => RecipeFields::signed($state))
-            ->placeholder('—')
-            ->alignEnd()
-            ->sortable();
     }
 
     /**
