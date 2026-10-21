@@ -123,9 +123,9 @@ pull: need-droplet ## Baja del droplet la BD de la app, la de origen y tus fotos
 
 server-update: setup-python ## (En el droplet) Dependencias, migraciones con copia y cachés
 	cd $(WEB) && composer install --no-dev --optimize-autoloader --no-interaction
-	grep -q '^APP_KEY=.\+' $(WEB)/.env || $(ARTISAN) key:generate --force
+	grep -q '^APP_KEY=.\+' $(WEB)/.env || ($(ARTISAN) key:generate --force)
 	$(MAKE) --no-print-directory backup
 	$(ARTISAN) migrate --force
-	test -L $(WEB)/public/storage || $(ARTISAN) storage:link
+	test -L $(WEB)/public/storage || ($(ARTISAN) storage:link)
 	$(ARTISAN) optimize
 	$(ARTISAN) filament:optimize
